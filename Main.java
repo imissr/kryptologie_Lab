@@ -127,14 +127,20 @@ public class Main {
 
 
                 case "attack":
-                    System.out.print("Enter encrypted text to brute-force: ");
-                    String toAttack = scanner.nextLine();
-                    System.out.println("Trying all possible Caesar shifts:");
-                    for (int i = 1; i < 26; i++) {
-                        // Wenn du eine decrypt-Methode hast:
-                        // String attempt = caeser.decrypt(toAttack, i);
-                        // System.out.println("Shift " + i + ": " + attempt);
-                    }
+                    System.out.print("Enter path to .txt file to analyze: ");
+                    String pathAttack = scanner.nextLine();
+                    String cipherText = readPlainTextFromFile(pathAttack);
+                    if (cipherText == null) return;
+
+                    caeser.analyzeFrequency(cipherText);
+
+                    int guessedKey = caeser.guessCaesarKey(cipherText);
+                    String guessedPlaintext = caeser.decrypt(cipherText, guessedKey);
+
+                    System.out.println("\n🔓 Decrypted text (guessed key = " + guessedKey + "):");
+                    System.out.println(guessedPlaintext);
+
+                    writeTextToFile("guessed_decryption.txt", guessedPlaintext);
                     break;
             }
         } else {
