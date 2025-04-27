@@ -1,12 +1,19 @@
+package Addative_Chiffere;
+
 import Addative_Chiffere.Caeser;
+import Addative_Chiffere.Vigenere;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
+
+import static Addative_Chiffere.Vigenere.numberArrayToString;
 
 public class Main {
-
 
     public static String readPlainTextFromFile(String path) {
         try {
@@ -29,28 +36,31 @@ public class Main {
     private static String selectedAlgorithm;
 
     public static void main(String[] args) {
-        selectAlgorithm(); // Step 1
-        chooseAction();    // Step 2
+        selectAlgorithm();
+        chooseAction();
     }
 
     public static void selectAlgorithm() {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Please choose the encryption algorithm:");
         System.out.println("1. Caesar");
-        System.out.print("Your choice (1-3): ");
+        System.out.println("2. Vigenere");
+        System.out.print("Your choice (1-2): ");
 
         int choice = scanner.nextInt();
-        scanner.nextLine(); // consume newline
+        scanner.nextLine();
 
         switch (choice) {
             case 1:
                 selectedAlgorithm = "caesar";
                 break;
+            case 2:
+                selectedAlgorithm = "vigenere";
+                break;
             default:
                 System.out.println("Invalid number. Exiting...");
                 System.exit(0);
         }
-
         System.out.println("You selected: " + selectedAlgorithm);
     }
 
@@ -63,7 +73,7 @@ public class Main {
         System.out.print("Your choice (1-3): ");
 
         int actionChoice = scanner.nextInt();
-        scanner.nextLine(); // consume newline
+        scanner.nextLine();
 
         String action;
         switch (actionChoice) {
@@ -84,69 +94,113 @@ public class Main {
         applyAction(selectedAlgorithm, action);
     }
 
-    public static void applyAction(String selectedAlgorithm, String action) {
+    public static void applyAction(String algorithm, String action) {
         Scanner scanner = new Scanner(System.in);
 
-        if (selectedAlgorithm.equals("caesar")) {
+        if ("caesar".equals(algorithm)) {
             Caeser caeser = new Caeser();
-
             switch (action) {
                 case "encrypt":
                     System.out.print("Enter path to .txt file to encrypt: ");
-                    String pathEncrypt = scanner.nextLine();
-                    String plaintext = readPlainTextFromFile(pathEncrypt);
+                    String pathEnc = scanner.nextLine();
+                    String plaintext = readPlainTextFromFile(pathEnc);
                     if (plaintext == null) return;
 
                     System.out.print("Enter shift: ");
-                    int shiftEncrypt = scanner.nextInt();
-                    scanner.nextLine(); // consume newline
+                    int shiftEnc = scanner.nextInt();
+                    scanner.nextLine();
 
-                    String encrypted = caeser.encrypt(plaintext, shiftEncrypt);
+                    String encrypted = caeser.encrypt(plaintext, shiftEnc);
                     System.out.println("Encrypted text:\n" + encrypted);
-
-                    // Save automatically to file in project folder
                     writeTextToFile("encrypted_output.txt", encrypted);
                     break;
 
                 case "decrypt":
                     System.out.print("Enter path to .txt file to decrypt: ");
-                    String pathDecrypt = scanner.nextLine();
-                    String encryptedText = readPlainTextFromFile(pathDecrypt);
+                    String pathDec = scanner.nextLine();
+                    String encryptedText = readPlainTextFromFile(pathDec);
                     if (encryptedText == null) return;
 
                     System.out.print("Enter shift: ");
-                    int shiftDecrypt = scanner.nextInt();
-                    scanner.nextLine(); // consume newline
+                    int shiftDec = scanner.nextInt();
+                    scanner.nextLine();
 
-                    String decrypted = caeser.decrypt(encryptedText, shiftDecrypt);
+                    String decrypted = caeser.decrypt(encryptedText, shiftDec);
                     System.out.println("Decrypted text:\n" + decrypted);
-
-                    // Save automatically to file in project folder
                     writeTextToFile("decrypted_output.txt", decrypted);
                     break;
 
-
                 case "attack":
                     System.out.print("Enter path to .txt file to analyze: ");
-                    String pathAttack = scanner.nextLine();
-                    String cipherText = readPlainTextFromFile(pathAttack);
+                    String pathAtk = scanner.nextLine();
+                    String cipherText = readPlainTextFromFile(pathAtk);
                     if (cipherText == null) return;
 
                     caeser.analyzeFrequency(cipherText);
-
                     int guessedKey = caeser.guessCaesarKey(cipherText);
-                    String guessedPlaintext = caeser.decrypt(cipherText, guessedKey);
-
-                    System.out.println("\n🔓 Decrypted text (guessed key = " + guessedKey + "):");
-                    System.out.println(guessedPlaintext);
-
-                    writeTextToFile("guessed_decryption.txt", guessedPlaintext);
+                    String guessedPlain = caeser.decrypt(cipherText, guessedKey);
+                    System.out.println("\nDecrypted text (guessed key = " + guessedKey + "):");
+                    System.out.println(guessedPlain);
+                    writeTextToFile("guessed_decryption.txt", guessedPlain);
                     break;
             }
-        } else {
-            System.out.println("The selected algorithm is not yet implemented.");
+        }
+
+        if ("vigenere".equals(algorithm)) {
+            Vigenere vigenere = new Vigenere();
+            switch (action) {
+                case "encrypt":
+                    System.out.print("Enter path to .txt file to encrypt: ");
+                    String pathEncV = scanner.nextLine();
+                    String plainV = readPlainTextFromFile(pathEncV);
+                    if (plainV == null) return;
+
+                    System.out.print("Enter key (letters only): ");
+                    String keyStr = scanner.nextLine();
+                    List<Integer> keyV = Vigenere.generateKey(keyStr);
+
+                    String encV = vigenere.encrypt(plainV.toUpperCase(), keyV);
+                    System.out.println("Encrypted text:\n" + encV);
+                    writeTextToFile("encrypted_output_vigenere.txt", encV);
+                    break;
+
+                case "decrypt":
+                    System.out.print("Enter path to .txt file to decrypt: ");
+                    String pathDecV = scanner.nextLine();
+                    String cipherV = readPlainTextFromFile(pathDecV);
+                    if (cipherV == null) return;
+
+                    System.out.print("Enter key (letters only): ");
+                    String keyStrDec = scanner.nextLine();
+                    List<Integer> keyVD = Vigenere.generateKey(keyStrDec);
+
+                    String decV = vigenere.decrypt(cipherV.toUpperCase(), keyVD);
+                    System.out.println("Decrypted text:\n" + decV);
+                    writeTextToFile("decrypted_output_vigenere.txt", decV);
+                    break;
+
+                case "attack":
+                    System.out.print("Enter path to .txt file to analyze: ");
+                    String pathAtkV = scanner.nextLine();
+                    String ct = readPlainTextFromFile(pathAtkV);
+                    if (ct == null || ct.isEmpty()) {
+                        System.out.println("Error: Could not read cipher text or file is empty.");
+                        return;
+                    }
+
+                    int[] key = Vigenere.getMostLikelyKey(ct);
+                   List<Integer> list = Arrays.stream(key).boxed().collect(Collectors.toList());
+
+                    System.out.println("Estimated key length: " + key.length);
+                    String plain = Vigenere.decrypt(ct, list);
+
+                    String result = numberArrayToString(key) + System.lineSeparator() + plain;
+                    System.out.println("Decrypted text with guessed key:\n" + result);
+                    break;
+
+                default:
+                    System.out.println("Invalid action for Vigenere.");
+            }
         }
     }
-
-
 }

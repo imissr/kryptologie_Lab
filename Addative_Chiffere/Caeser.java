@@ -63,7 +63,7 @@ public class Caeser {
         return cryptText.toString();
     }
 
-    public static void analyzeFrequency(String text) {
+    public static Map<Character, Integer> analyzeFrequency(String text) {
         final String ENGLISH_ALPHABET = "abcdefghijklmnopqrstuvwxyz";
         Map<Character, Integer> freqMap = new LinkedHashMap<>();
         int totalLetters = 0;
@@ -85,6 +85,7 @@ public class Caeser {
             double percent = totalLetters > 0 ? (count * 100.0 / totalLetters) : 0;
             System.out.printf("%c: %5.2f%% (%d times)\n", c, percent, count);
         }
+        return freqMap;
     }
     public static int guessCaesarKey(String cipherText) {
         final String ENGLISH_ALPHABET = "abcdefghijklmnopqrstuvwxyz";
