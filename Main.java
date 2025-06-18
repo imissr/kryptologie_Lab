@@ -14,8 +14,7 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 
 import static Addative_Chiffere.Vigenere.numberArrayToString;
-import static aes.Aes.encryptBlock;
-import static aes.Aes.readHexFile;
+import static aes.Aes.*;
 
 
 public class Main {
@@ -249,12 +248,37 @@ public class Main {
                 break;
 
             case "decrypt":
-                // …
+                System.out.print("Enter path to hex ciphertext file: ");
+                String ctHexPath = scanner.nextLine();
+                String ctContent = Files.readString(Paths.get(ctHexPath), StandardCharsets.UTF_8);
+                if (ctContent == null) return;
+                // strip whitespace and parse to bytes
+                byte[] ciphertext1 = parseHexString(ctContent);
+
+                System.out.print("Enter path to AES round-keys file: ");
+                String keyPathDec = scanner.nextLine();
+                System.out.print("Enter path to AES S-Box: ");
+                String sBoxLocDec = scanner.nextLine();
+
+                List<String> roundKeysDec = readKeyFromFile(keyPathDec);
+                if (roundKeysDec == null) return;
+
+                byte[] decrypt = decryptBlock(ciphertext1, sBoxLocDec, keyPathDec);
+
+                // format output as hex
+                StringBuilder sbDec = new StringBuilder();
+                for (byte b : decrypt) {
+                    sbDec.append(String.format("%02x ", b));
+                }
+
+                System.out.println("Decrypted (hex):\n" + sbDec);
+                writeTextToFile("aes_decrypted_output.txt", sbDec.toString());
                 break;
 
             default:
                 System.out.println("Invalid action for AES.");
         }
+
     }
 
     // new helper to turn a raw hex string into bytes
