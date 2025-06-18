@@ -31,6 +31,7 @@ public class Aes {
     public static void initSBoxes(String fileName) throws IOException {
         // 1) Read forward S-box from hex file into sBox
         readSBox(fileName, sBox);
+        computeInverseSBox(sBox, sBoxInv);
 
     }
     public static void initInverseSBoxes( String fileName) throws IOException {
@@ -310,7 +311,7 @@ public class Aes {
 
 
     public static byte[] decryptBlock(byte[] in, String locSbox, String locKeyRounds) throws IOException {
-        initInverseSBoxes(locSbox);
+        initSBoxes(locSbox);
         initRoundKeys(locKeyRounds);
 
         if (in.length != 16) {
