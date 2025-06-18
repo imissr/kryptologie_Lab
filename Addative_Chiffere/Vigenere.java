@@ -115,9 +115,7 @@ public class Vigenere {
         return (char) (maxIdx + 'A');
     }
 
-    // Guess numeric key by assuming 'E' is the most common plaintext letter in each substring
     public static int[] getMostLikelyKey(String text) {
-        // keep only A–Z
         String sanitized = text.replaceAll("[^A-Z]", "");
         int keyLength = getKeyLength(sanitized);
         int[] key = new int[keyLength];
@@ -127,13 +125,11 @@ public class Vigenere {
                 sb.append(sanitized.charAt(j));
             }
             char mc = getMostCommonChar(sb.toString());
-            // shift from 'E'
             key[i] = (mc - 'E' + 26) % 26;
         }
         return key;
     }
 
-    // Convert numeric key [0–25] to letters A–Z
     public static String numberArrayToString(int[] key) {
         StringBuilder sb = new StringBuilder();
         for (int k : key) {
