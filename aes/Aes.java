@@ -28,6 +28,65 @@ public class Aes {
     private static final byte[][] sBoxInv = new byte[16][16];
     private static final byte[][] roundKeys = new byte[11][16];
 
+
+    public static void generateRoundKeys(byte[] key) {
+        if (key.length != 16) {
+            throw new IllegalArgumentException("Key must be 16 bytes for AES-128");
+        }
+
+        int rounds = 11; // AES-128: 10 rounds + 1 initial round
+        int nk = 4;      // number of 32-bit words in the key
+        int nb = 4;      // number of columns (words) in the block
+        int totalWords = rounds * nb;
+
+        int[] w = new int[totalWords];
+        for (int i = 0; i < nk; i++) {
+            w[i] = ((key[4 * i] & 0xFF) << 24) |
+                    ((key[4 * i + 1] & 0xFF) << 16) |
+                    ((key[4 * i + 2] & 0xFF) << 8) |
+                    (key[4 * i + 3] & 0xFF);
+        }
+
+        for (int i = nk; i < totalWords; i++) {
+            int temp = w[i - 1];
+            if (i % nk == 0) {
+                temp = subWord(rotWord(temp)) ^ rcon(i / nk);
+            }
+            w[i] = w[i - nk] ^ temp;
+        }
+
+        // Convert words to roundKeys[round][16 bytes]
+        for (int round = 0; round < rounds; round++) {
+            for (int i = 0; i < 4; i++) {
+                int word = w[round * 4 + i];
+                roundKeys[round][i * 4]     = (byte) ((word >>> 24) & 0xFF);
+                roundKeys[round][i * 4 + 1] = (byte) ((word >>> 16) & 0xFF);
+                roundKeys[round][i * 4 + 2] = (byte) ((word >>> 8) & 0xFF);
+                roundKeys[round][i * 4 + 3] = (byte) (word & 0xFF);
+            }
+        }
+    }
+
+    private static int subWord(int word) {
+        return ((sBox[(word >>> 28) & 0xF][(word >>> 24) & 0xF] & 0xFF) << 24) |
+                ((sBox[(word >>> 20) & 0xF][(word >>> 16) & 0xF] & 0xFF) << 16) |
+                ((sBox[(word >>> 12) & 0xF][(word >>> 8) & 0xF] & 0xFF) << 8) |
+                (sBox[(word >>> 4) & 0xF][word & 0xF] & 0xFF);
+    }
+
+    private static int rotWord(int word) {
+        return ((word << 8) | ((word >>> 24) & 0xFF)) & 0xFFFFFFFF;
+    }
+
+    private static int rcon(int round) {
+        int[] rconTable = {
+                0x01000000, 0x02000000, 0x04000000, 0x08000000,
+                0x10000000, 0x20000000, 0x40000000, 0x80000000,
+                0x1B000000, 0x36000000
+        };
+        return rconTable[round - 1];
+    }
+
     public static void initSBoxes(String fileName) throws IOException {
         // 1) Read forward S-box from hex file into sBox
         readSBox(fileName, sBox);
@@ -40,14 +99,27 @@ public class Aes {
     }
 
     public static void initRoundKeys(String fileName) throws IOException {
+        byte[] key = readHexFile(fileName);
+
+
+        if (key.length != 16) {
+            throw new IllegalArgumentException("Key must be 16 bytes for AES-128");
+        }
+        generateRoundKeys(key);
+
+        for (int i = 0; i < roundKeys.length; i++) {
+            for (int j = 0; j < roundKeys[i].length; j++) {
+                System.out.println("Round " + i + ", Byte " + j + ": " + String.format("%02X", roundKeys[i][j]));
+            }
+        }
+
         // now: numRounds = 11, bytesPerRound = 16
-        populateFromFile(fileName, roundKeys, 11, 16);
+        //populateFromFile(fileName, roundKeys, 11, 16);
     }
 
 
 
-
-    public static void populateFromFile(String fileName,
+   /* public static void populateFromFile(String fileName,
                                         byte[][] input,
                                         int numRounds,
                                         int bytesPerRound) throws IOException {
@@ -70,7 +142,7 @@ public class Aes {
                         (byte) Integer.parseInt(tokens[b], 16);
             }
         }
-    }
+    }*/
 
     public static void readSBox(String fileName, byte[][] input) throws IOException {
         List<String> lines = Files.readAllLines(Paths.get(fileName));
@@ -256,6 +328,8 @@ public class Aes {
             bytes[i] = (byte) (intValue & 0xFF);
         }
 
+
+
         return bytes;
     }
 
@@ -271,6 +345,8 @@ public class Aes {
     }
 
     public static byte[] encryptBlock(byte[] in , String locSbox , String locKeyRounds) throws IOException {
+
+
         initSBoxes( locSbox);
         initRoundKeys(locKeyRounds);
 
