@@ -229,7 +229,7 @@ public class Main {
         String inputPath = scanner.nextLine();
         byte[] input = parseHexString(Files.readString(Paths.get(inputPath), StandardCharsets.UTF_8));
 
-        System.out.print("Enter path to AES round-keys file: ");
+        System.out.print("Enter path to AES key file: ");
         String keyPath = scanner.nextLine();
 
         System.out.print("Enter path to AES S-Box: ");
