@@ -1,8 +1,11 @@
-
+// (Main.java)
 
 import Addative_Chiffere.Caeser;
 import Addative_Chiffere.Vigenere;
 import aes.Aes;
+import aes.BlockCipher;
+import aes.BlockCipherModes;
+import aes.AesCipher;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -16,9 +19,7 @@ import java.util.stream.Collectors;
 import static Addative_Chiffere.Vigenere.numberArrayToString;
 import static aes.Aes.*;
 
-
 public class Main {
-
     public static String readPlainTextFromFile(String path) {
         try {
             return Files.readString(Paths.get(path));
@@ -65,18 +66,13 @@ public class Main {
         scanner.nextLine();
 
         switch (choice) {
-            case 1:
-                selectedAlgorithm = "caesar";
-                break;
-            case 2:
-                selectedAlgorithm = "vigenere";
-                break;
-            case 3:
-                selectedAlgorithm = "aes";
-                break;
-            default:
+            case 1 -> selectedAlgorithm = "caesar";
+            case 2 -> selectedAlgorithm = "vigenere";
+            case 3 -> selectedAlgorithm = "aes";
+            default -> {
                 System.out.println("Invalid number. Exiting...");
                 System.exit(0);
+            }
         }
         System.out.println("You selected: " + selectedAlgorithm);
     }
@@ -96,22 +92,19 @@ public class Main {
 
         String action;
         switch (actionChoice) {
-            case 1:
-                action = "encrypt";
-                break;
-            case 2:
-                action = "decrypt";
-                break;
-            case 3:
+            case 1 -> action = "encrypt";
+            case 2 -> action = "decrypt";
+            case 3 -> {
                 if ("aes".equals(selectedAlgorithm)) {
                     System.out.println("Invalid action. Exiting...");
                     return;
                 }
                 action = "attack";
-                break;
-            default:
+            }
+            default -> {
                 System.out.println("Invalid action. Exiting...");
                 return;
+            }
         }
 
         applyAction(selectedAlgorithm, action);
@@ -120,46 +113,41 @@ public class Main {
     public static void applyAction(String algorithm, String action) throws IOException {
         Scanner scanner = new Scanner(System.in);
         switch (algorithm) {
-            case "caesar":
-                handleCaesar(action, scanner);
-                break;
-            case "vigenere":
-                handleVigenere(action, scanner);
-                break;
-            case "aes":
-                handleAes(action, scanner);
-                break;
-            default:
-                System.out.println("Unknown algorithm. Exiting...");
+            case "caesar" -> handleCaesar(action, scanner);
+            case "vigenere" -> handleVigenere(action, scanner);
+            case "aes" -> handleAes(action, scanner);
+            default -> System.out.println("Unknown algorithm. Exiting...");
         }
     }
 
     private static void handleCaesar(String action, Scanner scanner) {
         Caeser caeser = new Caeser();
         switch (action) {
-            case "encrypt":
+            case "encrypt" -> {
                 System.out.print("Enter path to .txt file to encrypt: ");
                 String pathEnc = scanner.nextLine();
                 String plaintext = readPlainTextFromFile(pathEnc);
                 if (plaintext == null) return;
                 System.out.print("Enter shift: ");
-                int shiftEnc = scanner.nextInt(); scanner.nextLine();
+                int shiftEnc = scanner.nextInt();
+                scanner.nextLine();
                 String encrypted = caeser.encrypt(plaintext, shiftEnc);
                 System.out.println("Encrypted text:\n" + encrypted);
                 writeTextToFile("encrypted_output.txt", encrypted);
-                break;
-            case "decrypt":
+            }
+            case "decrypt" -> {
                 System.out.print("Enter path to .txt file to decrypt: ");
                 String pathDec = scanner.nextLine();
                 String encryptedText = readPlainTextFromFile(pathDec);
                 if (encryptedText == null) return;
                 System.out.print("Enter shift: ");
-                int shiftDec = scanner.nextInt(); scanner.nextLine();
+                int shiftDec = scanner.nextInt();
+                scanner.nextLine();
                 String decrypted = caeser.decrypt(encryptedText, shiftDec);
                 System.out.println("Decrypted text:\n" + decrypted);
                 writeTextToFile("decrypted_output.txt", decrypted);
-                break;
-            case "attack":
+            }
+            case "attack" -> {
                 System.out.print("Enter path to .txt file to analyze: ");
                 String pathAtk = scanner.nextLine();
                 String cipherText = readPlainTextFromFile(pathAtk);
@@ -170,14 +158,14 @@ public class Main {
                 System.out.println("\nDecrypted text (guessed key = " + guessedKey + "): ");
                 System.out.println(guessedPlain);
                 writeTextToFile("guessed_decryption.txt", guessedPlain);
-                break;
+            }
         }
     }
 
     private static void handleVigenere(String action, Scanner scanner) {
         Vigenere vigenere = new Vigenere();
         switch (action) {
-            case "encrypt":
+            case "encrypt" -> {
                 System.out.print("Enter path to .txt file to encrypt: ");
                 String pathEncV = scanner.nextLine();
                 String plainV = readPlainTextFromFile(pathEncV);
@@ -188,8 +176,8 @@ public class Main {
                 String encV = vigenere.encrypt(plainV.toUpperCase(), keyV);
                 System.out.println("Encrypted text:\n" + encV);
                 writeTextToFile("encrypted_output_vigenere.txt", encV);
-                break;
-            case "decrypt":
+            }
+            case "decrypt" -> {
                 System.out.print("Enter path to .txt file to decrypt: ");
                 String pathDecV = scanner.nextLine();
                 String cipherV = readPlainTextFromFile(pathDecV);
@@ -200,88 +188,93 @@ public class Main {
                 String decV = vigenere.decrypt(cipherV.toUpperCase(), keyVD);
                 System.out.println("Decrypted text:\n" + decV);
                 writeTextToFile("decrypted_output_vigenere.txt", decV);
-                break;
-            case "attack":
+            }
+            case "attack" -> {
                 System.out.print("Enter path to .txt file to analyze: ");
                 String pathAtkV = scanner.nextLine();
                 String ct = readPlainTextFromFile(pathAtkV);
-                if (ct == null || ct.isEmpty()) { System.out.println("Error: Could not read cipher text or file is empty."); return; }
+                if (ct == null || ct.isEmpty()) {
+                    System.out.println("Error: Could not read cipher text or file is empty.");
+                    return;
+                }
                 int[] key = Vigenere.getMostLikelyKey(ct);
                 List<Integer> list = Arrays.stream(key).boxed().collect(Collectors.toList());
                 System.out.println("Estimated key length: " + key.length);
                 String plain = Vigenere.decrypt(ct, list);
                 String result = numberArrayToString(key) + System.lineSeparator() + plain;
                 System.out.println("Decrypted text with guessed key:\n" + result);
-                break;
-            default:
-                System.out.println("Invalid action for Vigenere.");
+            }
+            default -> System.out.println("Invalid action for Vigenere.");
         }
     }
 
     private static void handleAes(String action, Scanner scanner) throws IOException {
-        switch (action) {
-            case "encrypt":
-                System.out.print("Enter path to hex plaintext file: ");
-                String ptHexPath = scanner.nextLine();
-                String fileContent = Files.readString(Paths.get(ptHexPath), StandardCharsets.UTF_8);
-                if (fileContent == null) return;
-                // remove whitespace and parse
-                byte[] plaintext = parseHexString(fileContent);
+        System.out.println("Select AES mode:");
+        System.out.println("1. ECB");
+        System.out.println("2. CBC");
+        System.out.println("3. OFB");
+        System.out.println("4. CTR");
+        System.out.print("Mode (1-4): ");
+        int mode = Integer.parseInt(scanner.nextLine());
 
-                System.out.print("Enter path to AES round‐keys file: ");
-                String keyPathEnc = scanner.nextLine();
-                System.out.print("Enter path to AES S‐Box: ");
-                String sBoxLoc = scanner.nextLine();
+        String aesMode = switch (mode) {
+            case 1 -> "ECB";
+            case 2 -> "CBC";
+            case 3 -> "OFB";
+            case 4 -> "CTR";
+            default -> throw new IllegalArgumentException("Invalid AES mode selected");
+        };
 
-                List<String> roundKeysEnc = readKeyFromFile(keyPathEnc);
-                if (roundKeysEnc == null) return;
+        System.out.print("Enter path to hex input file: ");
+        String inputPath = scanner.nextLine();
+        byte[] input = parseHexString(Files.readString(Paths.get(inputPath), StandardCharsets.UTF_8));
 
-                byte[] ciphertext = encryptBlock(plaintext, sBoxLoc, keyPathEnc);
+        System.out.print("Enter path to AES round-keys file: ");
+        String keyPath = scanner.nextLine();
 
-                StringBuilder sb = new StringBuilder();
-                for (byte b : ciphertext) {
-                    sb.append(String.format("%02x ", b));
-                }
+        System.out.print("Enter path to AES S-Box: ");
+        String sBoxPath = scanner.nextLine();
 
-                System.out.println("Encrypted (hex):\n" + sb);
-                writeTextToFile("aes_encrypted_output.txt", sb.toString());
-                break;
+        BlockCipher cipher = new AesCipher(sBoxPath, keyPath);
+        byte[] output;
+        byte[] iv = new byte[16];
+        long counter = 0;
 
-            case "decrypt":
-                System.out.print("Enter path to hex ciphertext file: ");
-                String ctHexPath = scanner.nextLine();
-                String ctContent = Files.readString(Paths.get(ctHexPath), StandardCharsets.UTF_8);
-                if (ctContent == null) return;
-                // strip whitespace and parse to bytes
-                byte[] ciphertext1 = parseHexString(ctContent);
-
-                System.out.print("Enter path to AES round-keys file: ");
-                String keyPathDec = scanner.nextLine();
-                System.out.print("Enter path to AES S-Box: ");
-                String sBoxLocDec = scanner.nextLine();
-
-                List<String> roundKeysDec = readKeyFromFile(keyPathDec);
-                if (roundKeysDec == null) return;
-
-                byte[] decrypt = decryptBlock(ciphertext1, sBoxLocDec, keyPathDec);
-
-                // format output as hex
-                StringBuilder sbDec = new StringBuilder();
-                for (byte b : decrypt) {
-                    sbDec.append(String.format("%02x ", b));
-                }
-
-                System.out.println("Decrypted (hex):\n" + sbDec);
-                writeTextToFile("aes_decrypted_output.txt", sbDec.toString());
-                break;
-
-            default:
-                System.out.println("Invalid action for AES.");
+        if (aesMode.equals("CBC") || aesMode.equals("OFB")) {
+            System.out.print("Enter IV (16 bytes hex): ");
+            iv = parseHexString(scanner.nextLine());
+        } else if (aesMode.equals("CTR")) {
+            System.out.print("Enter initial counter (decimal): ");
+            counter = Long.parseLong(scanner.nextLine());
         }
 
+        if (action.equals("encrypt")) {
+            output = switch (aesMode) {
+                case "ECB" -> BlockCipherModes.encryptECB(cipher, input, 16);
+                case "CBC" -> BlockCipherModes.encryptCBC(cipher, input, 16, iv);
+                case "OFB" -> BlockCipherModes.encryptOFB(cipher, input, 16, iv);
+                case "CTR" -> BlockCipherModes.encryptCTR(cipher, input, 16, counter);
+                default -> throw new IllegalStateException("Unexpected mode: " + aesMode);
+            };
+        } else {
+            output = switch (aesMode) {
+                case "ECB" -> BlockCipherModes.decryptECB(cipher, input, 16);
+                case "CBC" -> BlockCipherModes.decryptCBC(cipher, input, 16, iv);
+                case "OFB" -> BlockCipherModes.decryptOFB(cipher, input, 16, iv);
+                case "CTR" -> BlockCipherModes.decryptCTR(cipher, input, 16, counter);
+                default -> throw new IllegalStateException("Unexpected mode: " + aesMode);
+            };
+        }
+
+        StringBuilder hexOut = new StringBuilder();
+        for (byte b : output) {
+            hexOut.append(String.format("%02x ", b));
+        }
+
+        System.out.println((action.equals("encrypt") ? "Encrypted" : "Decrypted") + " (hex):\n" + hexOut);
+        writeTextToFile("aes_" + action + "_output_" + aesMode.toLowerCase() + ".txt", hexOut.toString());
     }
 
-    // new helper to turn a raw hex string into bytes
     public static byte[] parseHexString(String hex) {
         String[] tokens = hex.trim().split("\\s+");
         byte[] out = new byte[tokens.length];
