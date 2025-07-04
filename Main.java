@@ -6,6 +6,9 @@ import aes.Aes;
 import aes.BlockCipher;
 import aes.BlockCipherModes;
 import aes.AesCipher;
+import lineareAnalysis.Spn;
+import lineareAnalysis.LineareApproximation;
+import lineareAnalysis.GueteApporximation;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -60,7 +63,10 @@ public class Main {
         System.out.println("1. Caesar");
         System.out.println("2. Vigenere");
         System.out.println("3. AES");
-        System.out.print("Your choice (1-3): ");
+        System.out.println("4. SPN");
+        System.out.println("5. Linear Approximation");
+        System.out.println("6. Quality Approximation");
+        System.out.print("Your choice (1-6): ");
 
         int choice = scanner.nextInt();
         scanner.nextLine();
@@ -69,6 +75,9 @@ public class Main {
             case 1 -> selectedAlgorithm = "caesar";
             case 2 -> selectedAlgorithm = "vigenere";
             case 3 -> selectedAlgorithm = "aes";
+            case 4 -> selectedAlgorithm = "spn";
+            case 5 -> selectedAlgorithm = "linear";
+            case 6 -> selectedAlgorithm = "quality";
             default -> {
                 System.out.println("Invalid number. Exiting...");
                 System.exit(0);
@@ -80,30 +89,60 @@ public class Main {
     public static void chooseAction() throws IOException {
         Scanner scanner = new Scanner(System.in);
         System.out.println("What do you want to do with " + selectedAlgorithm + "?");
-        System.out.println("1. Encrypt");
-        System.out.println("2. Decrypt");
-        if ("caesar".equals(selectedAlgorithm) || "vigenere".equals(selectedAlgorithm)) {
-            System.out.println("3. Attack");
+        
+        if ("linear".equals(selectedAlgorithm)) {
+            System.out.println("1. Generate Example Texts");
+            System.out.println("2. Perform Linear Approximation");
+            System.out.print("Your choice (1-2): ");
+        } else if ("quality".equals(selectedAlgorithm)) {
+            System.out.println("1. Analyze Quality Approximation");
+            System.out.print("Your choice (1): ");
+        } else {
+            System.out.println("1. Encrypt");
+            System.out.println("2. Decrypt");
+            if ("caesar".equals(selectedAlgorithm) || "vigenere".equals(selectedAlgorithm)) {
+                System.out.println("3. Attack");
+            }
+            int maxChoice = ("aes".equals(selectedAlgorithm) || "spn".equals(selectedAlgorithm)) ? 2 : 3;
+            System.out.print("Your choice (1-" + maxChoice + "): ");
         }
-        System.out.print("Your choice (1-" + ("aes".equals(selectedAlgorithm) ? 2 : 3) + "): ");
 
         int actionChoice = scanner.nextInt();
         scanner.nextLine();
 
         String action;
-        switch (actionChoice) {
-            case 1 -> action = "encrypt";
-            case 2 -> action = "decrypt";
-            case 3 -> {
-                if ("aes".equals(selectedAlgorithm)) {
+        if ("linear".equals(selectedAlgorithm)) {
+            switch (actionChoice) {
+                case 1 -> action = "generate";
+                case 2 -> action = "analyze";
+                default -> {
                     System.out.println("Invalid action. Exiting...");
                     return;
                 }
-                action = "attack";
             }
-            default -> {
-                System.out.println("Invalid action. Exiting...");
-                return;
+        } else if ("quality".equals(selectedAlgorithm)) {
+            switch (actionChoice) {
+                case 1 -> action = "analyze";
+                default -> {
+                    System.out.println("Invalid action. Exiting...");
+                    return;
+                }
+            }
+        } else {
+            switch (actionChoice) {
+                case 1 -> action = "encrypt";
+                case 2 -> action = "decrypt";
+                case 3 -> {
+                    if ("aes".equals(selectedAlgorithm) || "spn".equals(selectedAlgorithm)) {
+                        System.out.println("Invalid action. Exiting...");
+                        return;
+                    }
+                    action = "attack";
+                }
+                default -> {
+                    System.out.println("Invalid action. Exiting...");
+                    return;
+                }
             }
         }
 
@@ -116,6 +155,9 @@ public class Main {
             case "caesar" -> handleCaesar(action, scanner);
             case "vigenere" -> handleVigenere(action, scanner);
             case "aes" -> handleAes(action, scanner);
+            case "spn" -> handleSpn(action, scanner);
+            case "linear" -> handleLinearApproximation(action, scanner);
+            case "quality" -> handleQualityApproximation(action, scanner);
             default -> System.out.println("Unknown algorithm. Exiting...");
         }
     }
@@ -273,6 +315,82 @@ public class Main {
 
         System.out.println((action.equals("encrypt") ? "Encrypted" : "Decrypted") + " (hex):\n" + hexOut);
         writeTextToFile("aes_" + action + "_output_" + aesMode.toLowerCase() + ".txt", hexOut.toString());
+    }
+
+    private static void handleSpn(String action, Scanner scanner) throws IOException {
+        System.out.print("Enter path to hex input file: ");
+        String inputPath = scanner.nextLine();
+        String hexInput = Files.readString(Paths.get(inputPath), StandardCharsets.UTF_8);
+        
+        System.out.print("Enter path to hex key file: ");
+        String keyPath = scanner.nextLine();
+        String hexKey = Files.readString(Paths.get(keyPath), StandardCharsets.UTF_8);
+        
+        String output;
+        String outputFile;
+        
+        if (action.equals("encrypt")) {
+            output = Spn.encrypt(Spn.hexToBinary(hexInput), Spn.hexToBinary(hexKey));
+            output = Spn.binaryToHex(output);
+            outputFile = "spn_encrypt_output.txt";
+            System.out.println("Encrypted (hex):\n" + output);
+        } else { // decrypt
+            // For SPN, since it's symmetric, we use the same encrypt function
+            output = Spn.encrypt(Spn.hexToBinary(hexInput), Spn.hexToBinary(hexKey));
+            output = Spn.binaryToHex(output);
+            outputFile = "spn_decrypt_output.txt";
+            System.out.println("Decrypted (hex):\n" + output);
+        }
+        
+        writeTextToFile(outputFile, output);
+    }
+
+    private static void handleLinearApproximation(String action, Scanner scanner) throws IOException {
+        if (action.equals("generate")) {
+            System.out.print("Enter path for output plaintext file: ");
+            String plaintextFile = scanner.nextLine();
+            System.out.print("Enter path for output ciphertext file: ");
+            String ciphertextFile = scanner.nextLine();
+            System.out.print("Enter SPN key (4-digit hex): ");
+            String keyHex = scanner.nextLine();
+            System.out.print("Enter number of plaintext-ciphertext pairs to generate: ");
+            int numTexts = scanner.nextInt();
+            scanner.nextLine();
+            
+            LineareApproximation.generatePlaintextCiphertextPairs(plaintextFile, ciphertextFile, keyHex, numTexts);
+            System.out.println("Generated " + numTexts + " plaintext-ciphertext pairs:");
+            System.out.println("  Plaintexts in: " + plaintextFile);
+            System.out.println("  Ciphertexts in: " + ciphertextFile);
+        } else { // analyze
+            System.out.print("Enter path to plaintext file: ");
+            String plaintextFile = scanner.nextLine();
+            System.out.print("Enter path to ciphertext file: ");
+            String ciphertextFile = scanner.nextLine();
+            
+            String result = LineareApproximation.performLinearApproximation(
+                plaintextFile, ciphertextFile, null);
+            System.out.println("Most likely key approximation: " + result);
+            
+            // Automatically save result to file like other methods
+            writeTextToFile("linear_approximation_result.txt", result);
+        }
+    }
+
+    private static void handleQualityApproximation(String action, Scanner scanner) throws IOException {
+        System.out.print("Enter path to S-Box file: ");
+        String sBoxFile = scanner.nextLine();
+        System.out.print("Enter path to approximation file: ");
+        String approximationFile = scanner.nextLine();
+        
+        double quality = GueteApporximation.performQualityAnalysis(sBoxFile, approximationFile, null);
+        
+        if (quality == -1.0) {
+            System.out.println("Quality result: -1 (zero values found in approximation)");
+            writeTextToFile("quality_approximation_result.txt", "-1");
+        } else {
+            System.out.println("Quality approximation result: " + quality);
+            writeTextToFile("quality_approximation_result.txt", String.valueOf(quality));
+        }
     }
 
     public static byte[] parseHexString(String hex) {
