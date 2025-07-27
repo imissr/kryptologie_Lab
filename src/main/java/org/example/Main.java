@@ -366,9 +366,14 @@ public class Main {
             String plaintextFile = scanner.nextLine();
             System.out.print("Enter path to ciphertext file: ");
             String ciphertextFile = scanner.nextLine();
+            System.out.println("Enter path for output file (optional, press Enter to skip): ");
+            String outpuFile = scanner.nextLine();
+            if (outpuFile.isEmpty()) {
+                outpuFile = null; // No output file specified
+            }
             
             String result = LineareApproximation.performLinearApproximation(
-                plaintextFile, ciphertextFile, null);
+                plaintextFile, ciphertextFile, outpuFile);
             System.out.println("Most likely key approximation: " + result);
             
             // Automatically save result to file like other methods

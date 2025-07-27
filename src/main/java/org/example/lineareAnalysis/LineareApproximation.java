@@ -16,7 +16,6 @@ public class LineareApproximation {
     };
     
     private static final String[] invSbox = new String[16];
-    private static final int[] perm = {0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15};
     private static final String[] hexDigits = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"};
     private static final List<KeyPair> partialKeys = new ArrayList<>();
     
@@ -282,11 +281,12 @@ public class LineareApproximation {
         
         return result;
     }
-    
+
+
     /**
      * Main method for command line usage
      */
-    public static void main(String[] args) {
+   public static void main(String[] args) {
         try {
             if (args.length == 2) {
                 // Generate example texts mode
