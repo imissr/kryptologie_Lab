@@ -7,7 +7,7 @@ import org.example.aes.AesCipher;
 import org.example.aes.BlockCipher;
 import org.example.aes.BlockCipherModes;
 import org.example.lineareAnalysis.GueteApporximation;
-import org.example.lineareAnalysis.LineareApproximation;
+import org.example.lineareAnalysis.LinApprox;
 import org.example.lineareAnalysis.Spn;
 
 import java.io.IOException;
@@ -357,7 +357,7 @@ public class Main {
             int numTexts = scanner.nextInt();
             scanner.nextLine();
             
-            LineareApproximation.generatePlaintextCiphertextPairs(plaintextFile, ciphertextFile, keyHex, numTexts);
+            LinApprox.generatePairs(plaintextFile, ciphertextFile,  numTexts , keyHex);
             System.out.println("Generated " + numTexts + " plaintext-ciphertext pairs:");
             System.out.println("  Plaintexts in: " + plaintextFile);
             System.out.println("  Ciphertexts in: " + ciphertextFile);
@@ -372,12 +372,9 @@ public class Main {
                 outpuFile = null; // No output file specified
             }
             
-            String result = LineareApproximation.performLinearApproximation(
+            LinApprox.performLinearApproximation(
                 plaintextFile, ciphertextFile, outpuFile);
-            System.out.println("Most likely key approximation: " + result);
-            
-            // Automatically save result to file like other methods
-            writeTextToFile("linear_approximation_result.txt", result);
+
         }
     }
 
@@ -387,7 +384,7 @@ public class Main {
         System.out.print("Enter path to approximation file: ");
         String approximationFile = scanner.nextLine();
         
-        double quality = GueteApporximation.performQualityAnalysis(sBoxFile, approximationFile, null);
+        double quality = GueteApporximation.performQualityAnalysis(sBoxFile, approximationFile , null);
         
         if (quality == -1.0) {
             System.out.println("Quality result: -1 (zero values found in approximation)");
