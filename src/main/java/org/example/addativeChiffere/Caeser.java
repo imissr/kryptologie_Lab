@@ -1,5 +1,8 @@
 package org.example.addativeChiffere;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -88,15 +91,15 @@ public class Caeser {
         return freqMap;
     }
     public static int guessCaesarKey(String cipherText) {
-        final String ENGLISH_ALPHABET = "abcdefghijklmnopqrstuvwxyz";
+        final String GERMAN_ALPHABET = "abcdefghijklmnopqrstuvwxyz";
         Map<Character, Integer> freqMap = new HashMap<>();
 
         // Initialize frequency map for a-z
-        for (char c : ENGLISH_ALPHABET.toCharArray()) {
+        for (char c : GERMAN_ALPHABET.toCharArray()) {
             freqMap.put(c, 0);
         }
 
-        // Count frequency of English letters only
+        // Count frequency of German letters only
         for (char c : cipherText.toLowerCase().toCharArray()) {
             if (freqMap.containsKey(c)) {
                 freqMap.put(c, freqMap.get(c) + 1);
@@ -113,16 +116,94 @@ public class Caeser {
             }
         }
 
+        // For German text, 'e' is still the most common letter
         // Calculate shift assuming 'e' is the most frequent in plain text
-        int cipherIndex = ENGLISH_ALPHABET.indexOf(mostFrequentChar);
-        int eIndex = ENGLISH_ALPHABET.indexOf('e');
-        int key = (cipherIndex - eIndex + ENGLISH_ALPHABET.length()) % ENGLISH_ALPHABET.length();
+        int cipherIndex = GERMAN_ALPHABET.indexOf(mostFrequentChar);
+        int eIndex = GERMAN_ALPHABET.indexOf('e');
+        int key = (cipherIndex - eIndex + GERMAN_ALPHABET.length()) % GERMAN_ALPHABET.length();
 
         System.out.println("Most frequent letter: " + mostFrequentChar);
         System.out.println("Estimated Caesar key (based on 'e'): " + key);
         return key;
     }
 
+
+    // Read text from file
+    public static String readFromFile(String filename) throws IOException {
+        return new String(Files.readAllBytes(Paths.get(filename)));
+    }
+
+    // Write text to file
+    public static void writeToFile(String filename, String content) throws IOException {
+        Files.write(Paths.get(filename), content.getBytes());
+    }
+
+    public static void main(String[] args) {
+        try {
+            if (args.length == 3) {
+                // Mode: [input.txt] [key] [output.txt] - Encrypt/Decrypt with given key
+                String inputFile = args[0];
+                int key = Integer.parseInt(args[1]);
+                String outputFile = args[2];
+                key = ((key % 26) + 26) % 26;
+
+                String inputText = readFromFile(inputFile);
+                String result;
+
+                // Determine if we should encrypt or decrypt based on key sign or content
+                // For simplicity, we'll assume positive key = encrypt, negative = decrypt
+                if (key >= 0) {
+                    result = encrypt(inputText.toUpperCase(), key);
+                    System.out.println("Encrypted with key: " + key);
+                } else {
+                    result = new Caeser().decrypt(inputText.toUpperCase(), Math.abs(key));
+                    System.out.println("Decrypted with key: " + Math.abs(key));
+                }
+
+                writeToFile(outputFile, result);
+                System.out.println("Result written to: " + outputFile);
+
+            } else if (args.length == 2) {
+                // Mode: [input.txt] [output.txt] - Automatic decryption using frequency analysis
+                String inputFile = args[0];
+                String outputFile = args[1];
+
+                String cipherText = readFromFile(inputFile);
+                
+                // Analyze frequency and guess key
+                int guessedKey = guessCaesarKey(cipherText);
+                
+                // Decrypt with guessed key
+                String decryptedText = new Caeser().decrypt(cipherText.toUpperCase(), guessedKey);
+                
+                // Write decrypted text to output file
+                writeToFile(outputFile, decryptedText);
+                
+                // Output key to standard output as required
+                System.out.println(guessedKey);
+                System.out.println("Automatic decryption completed. Key: " + guessedKey);
+                System.out.println("Decrypted text written to: " + outputFile);
+
+            } else {
+                // Print usage information
+                System.out.println("Usage:");
+                System.out.println("  Encrypt/Decrypt with key: java Caeser <input.txt> <key> <output.txt>");
+                System.out.println("    - Positive key for encryption, negative key for decryption");
+                System.out.println("  Automatic decryption:     java Caeser <input.txt> <output.txt>");
+                System.out.println("    - Uses frequency analysis to guess the key");
+            }
+
+        } catch (IOException e) {
+            System.err.println("File error: " + e.getMessage());
+            System.exit(1);
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid key format. Please provide a number.");
+            System.exit(1);
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+            System.exit(1);
+        }
+    }
 
 
 }

@@ -185,6 +185,7 @@ public class Main {
                 System.out.print("Enter shift: ");
                 int shiftDec = scanner.nextInt();
                 scanner.nextLine();
+                shiftDec = ((shiftDec % 26) + 26) % 26;
                 String decrypted = caeser.decrypt(encryptedText, shiftDec);
                 System.out.println("Decrypted text:\n" + decrypted);
                 writeTextToFile("decrypted_output.txt", decrypted);
