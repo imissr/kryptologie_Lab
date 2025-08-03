@@ -348,9 +348,6 @@ public class Aes {
         initSBoxes( locSbox);
         initRoundKeys(locKeyRounds);
 
-        if (in.length != 16) {
-            throw new IllegalArgumentException("Plaintext block must be 16 bytes");
-        }
 
         // 1) load into state (column-major)
         byte[][] state = new byte[4][4];

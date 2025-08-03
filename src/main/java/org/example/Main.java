@@ -384,8 +384,10 @@ public class Main {
         String sBoxFile = scanner.nextLine();
         System.out.print("Enter path to approximation file: ");
         String approximationFile = scanner.nextLine();
+        System.out.println("output file path");
+        String outputFile = scanner.nextLine();
         
-        double quality = GueteApporximation.performQualityAnalysis(sBoxFile, approximationFile , null);
+        double quality = GueteApporximation.performQualityAnalysis(sBoxFile, approximationFile ,outputFile );
         
         if (quality == -1.0) {
             System.out.println("Quality result: -1 (zero values found in approximation)");
