@@ -1,6 +1,7 @@
 package org.example.dsa;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.example.rsa.RSA;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -27,6 +28,8 @@ public class DsaSign {
         sign(privFile, msgFile, sigFile);
     }
 
+
+
     private static void sign(String privFile, String msgFile, String sigFile) throws Exception {
         BufferedReader in = new BufferedReader(new FileReader(privFile));
 
@@ -46,8 +49,8 @@ public class DsaSign {
             do {
                 k = new BigInteger(q.bitLength(), rand);
             } while (k.compareTo(BigInteger.ONE) <= 0 || k.compareTo(q) >= 0);
-
-            r = g.modPow(k, p).mod(q);
+            BigInteger temp = RSA.modPow(g, k, p);
+            r = temp.mod(q);
             if (r.equals(BigInteger.ZERO)) continue;
 
             BigInteger kInv = k.modInverse(q);
