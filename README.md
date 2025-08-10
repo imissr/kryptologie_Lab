@@ -41,33 +41,12 @@ To build the entire project:
 mvn clean compile
 ```
 
-To create a JAR file:
-
-```bash
-mvn clean package
-```
 
 ### Alternative: Direct Java Compilation (if Maven is not available)
 
-If Maven is not installed, you can compile and run directly using Java:
+If Maven is not installed, you can compile and run directly using Javac
 
-```powershell
-# Navigate to project root
-cd "c:\Users\khale\IdeaProjects\kryptologie_Lab_new"
 
-# Create output directory
-mkdir -Force target\classes
-
-# Download Bouncy Castle JAR manually (if needed)
-# Download bcprov-jdk15on-1.70.jar from https://www.bouncycastle.org/latest_releases.html
-# Place it in a 'lib' folder
-
-# Compile all Java files
-javac -cp "lib\*" -d target\classes src\main\java\org\example\**\*.java
-
-# Copy resource files
-Copy-Item -Recurse src\main\java\org\example\*\*.txt target\classes\org\example\ -Force
-```
 
 ## Project Structure
 
@@ -116,10 +95,9 @@ mvn exec:java -Dexec.mainClass="org.example.ClassName" -Dexec.args="arg1 arg2"
 - Configure run arguments in your IDE's run configuration
 
 ---
-
-
-
----
+### 1. INFO
+The Maven commands below are configured to work with the example files provided in the project. You can copy them and use them however you like.
+just run the commands in src project where pom.xml is located.
 
 ### 2. Classical Ciphers (`addativeChiffere` package)
 
