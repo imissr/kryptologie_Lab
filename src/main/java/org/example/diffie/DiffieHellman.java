@@ -1,5 +1,7 @@
 package org.example.diffie;
 
+import org.example.rsa.RSA;
+
 import java.math.BigInteger;
 import java.security.SecureRandom;
 
@@ -46,7 +48,7 @@ public class DiffieHellman {
             BigInteger a = new BigInteger(n.bitLength(), random)
                     .mod(n.subtract(BigInteger.valueOf(4)))
                     .add(BigInteger.TWO);
-            BigInteger b = a.modPow(m, n);
+            BigInteger b = RSA.modPow(a, m, n);
             if (b.equals(BigInteger.ONE) || b.equals(n.subtract(BigInteger.ONE)))
                 continue;
             boolean nextRound = false;
@@ -85,8 +87,8 @@ public class DiffieHellman {
         do {
             g = new BigInteger(p.bitLength(), random)
                     .mod(p.subtract(BigInteger.TWO)).add(BigInteger.TWO);
-        } while (g.modPow(BigInteger.TWO, p).equals(BigInteger.ONE)
-                || g.modPow(q, p).equals(BigInteger.ONE));
+        } while (RSA.modPow(g,BigInteger.TWO , p).equals(BigInteger.ONE)||
+                RSA.modPow(g, q, p).equals(BigInteger.ONE));
         return g;
     }
 
@@ -94,14 +96,14 @@ public class DiffieHellman {
      * Computes public value g^secret mod p.
      */
     public static BigInteger computePublic(BigInteger g, BigInteger secret, BigInteger p) {
-        return g.modPow(secret, p);
+        return RSA.modPow(g,secret, p) ;
     }
 
     /**
      * Computes shared secret otherPub^secret mod p.
      */
     public static BigInteger computeSharedSecret(BigInteger otherPub, BigInteger secret, BigInteger p) {
-        return otherPub.modPow(secret, p);
+        return RSA.modPow(otherPub,secret,p);
     }
 
     // Prevent instantiation

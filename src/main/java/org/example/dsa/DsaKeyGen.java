@@ -2,6 +2,7 @@ package org.example.dsa;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.example.diffie.DiffieHellman;
+import org.example.rsa.RSA;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -67,7 +68,7 @@ public class DsaKeyGen {
             h = new BigInteger(L, rand)
                     .mod(p.subtract(BigInteger.TWO))
                     .add(BigInteger.TWO);
-            g = h.modPow(k, p);
+            g = RSA.modPow(h,k,p);
         } while (g.compareTo(BigInteger.ONE) <= 0);
 
         // 4. Private key x
@@ -77,7 +78,7 @@ public class DsaKeyGen {
         } while (x.compareTo(BigInteger.ONE) <= 0 || x.compareTo(q) >= 0);
 
         // 5. Public key y = g^x mod p
-        BigInteger y = g.modPow(x, p);
+        BigInteger y = RSA.modPow(g,x,p);
 
         // Write public key (p, q, g, y)
         try (BufferedWriter out = new BufferedWriter(new FileWriter(pubFile))) {
