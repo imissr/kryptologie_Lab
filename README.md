@@ -110,20 +110,6 @@ If you want to test immediately without installing Maven:
 mvn exec:java -Dexec.mainClass="org.example.ClassName" -Dexec.args="arg1 arg2"
 ```
 
-**Method 2: Direct Java Execution (if Maven not available)**
-```powershell
-# After compiling (see Building section above)
-java -cp "target\classes;lib\*" org.example.ClassName arg1 arg2
-```
-
-**Method 3: Using Helper Scripts (Convenient alternative)**
-```powershell
-# Using PowerShell script
-.\run-java.ps1 org.example.ClassName arg1 arg2
-
-# Using Batch script
-run-java.bat org.example.ClassName arg1 arg2
-```
 
 **Method 4: Using IDE**
 - Right-click on the class with main method → "Run ClassName.main()"
@@ -131,14 +117,7 @@ run-java.bat org.example.ClassName arg1 arg2
 
 ---
 
-### 1. Main Application (`org.example.Main`)
 
-**Purpose**: Main entry point for the application
-
-**Usage:**
-```bash
-mvn exec:java -Dexec.mainClass="org.example.Main"
-```
 
 ---
 
@@ -157,14 +136,6 @@ mvn exec:java -Dexec.mainClass="org.example.addativeChiffere.Caeser" -Dexec.args
 mvn exec:java -Dexec.mainClass="org.example.addativeChiffere.Caeser" -Dexec.args="ciphertext.txt output.txt"
 ```
 
-**Usage with Direct Java (if Maven not available):**
-```powershell
-# Encrypt/Decrypt with key
-java -cp "target\classes;lib\*" org.example.addativeChiffere.Caeser input.txt 7 output.txt
-
-# Brute force attack (find key)
-java -cp "target\classes;lib\*" org.example.addativeChiffere.Caeser ciphertext.txt output.txt
-```
 
 **Arguments:**
 - 3 args: `[input_file] [key] [output_file]` - Encrypt/decrypt with given key
@@ -228,7 +199,22 @@ mvn exec:java -Dexec.mainClass="org.example.aes.AesCipher" -Dexec.args="decrypt 
 
 **Usage:**
 ```bash
-mvn exec:java -Dexec.mainClass="org.example.aes.BlockCipherModes" -Dexec.args="-m ECB -o encrypt -i input.txt -k key.txt -out output.txt -s SBox.txt"
+mvn exec:java -Dexec.mainClass="org.example.aes.BlockCipherModes" -Dexec.args="-m
+OFB
+-o
+encrypt
+-i
+src/main/java/org/example/aes/Beispiel_1_Klartext.txt
+-k
+src/main/java/org/example/aes/Beispiel_key.txt
+-out
+src/main/java/org/example/aes/output.txt
+-s
+src/main/java/org/example/aes/Sbox.txt
+-b
+16
+-iv
+src/main/java/org/example/aes/IV"
 ```
 
 **Required Arguments:**
