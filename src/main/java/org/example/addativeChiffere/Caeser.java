@@ -7,7 +7,29 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Implementation of the Caesar cipher encryption and decryption algorithm.
+ * The Caesar cipher is a simple substitution cipher where each letter in the plaintext
+ * is shifted a certain number of places down or up the alphabet.
+ * 
+ * This class provides methods for:
+ * - Encrypting and decrypting text using a Caesar cipher
+ * - Frequency analysis of text
+ * - Automatic key guessing based on frequency analysis
+ * - File I/O operations for cipher operations
+ * 
+ * @author Kryptologie Lab
+ * @version 1.0
+ */
 public class Caeser {
+    /**
+     * Encrypts the given text using the Caesar cipher with the specified key.
+     * Only uppercase letters (A-Z) are encrypted, other characters remain unchanged.
+     * 
+     * @param text the plaintext to encrypt (should contain uppercase letters)
+     * @param key the shift value for encryption (0-25)
+     * @return the encrypted text
+     */
     public static String encrypt(String text, int key) {
         StringBuilder cryptText = new StringBuilder();
 
@@ -26,6 +48,17 @@ public class Caeser {
         return cryptText.toString();
     }
 
+    /**
+     * Shifts a character forward in the alphabet for encryption.
+     * This method handles the wrapping around the alphabet (Z wraps to A).
+     * 
+     * Example: shiftEnc('X', 5) returns 'C'
+     * Calculation: ((88 - 65 + 5) % 26) + 65 = ((23 + 5) % 26) + 65 = (2) + 65 = 67 → 'C'
+     * 
+     * @param charAscii the ASCII value of the character to shift (must be A-Z, 65-90)
+     * @param key the number of positions to shift forward
+     * @return the shifted character
+     */
     /*charAscii = 88  // 'X'
     shifted = ((88 - 65 + 5) % 26) + 65
             = (28 % 26) + 65 28->x
@@ -38,6 +71,17 @@ public class Caeser {
         return (char) shifted;
     }
 
+    /**
+     * Shifts a character backward in the alphabet for decryption.
+     * This method handles the wrapping around the alphabet and avoids negative numbers.
+     * The +26 ensures that negative modulo results are handled correctly.
+     * 
+     * Note: -3 % 26 would return -3, so we add 26 to avoid negative numbers
+     * 
+     * @param charAscii the ASCII value of the character to shift (must be A-Z, 65-90)
+     * @param key the number of positions to shift backward
+     * @return the shifted character
+     */
     // -3 % 26 would return -3 ->avoid negative number
     public static char shiftDec(int charAscii, int key) {
         // Shift within uppercase letters (A-Z)
@@ -45,6 +89,14 @@ public class Caeser {
         return (char) shifted;
     }
 
+    /**
+     * Decrypts the given cipher text using the Caesar cipher with the specified key.
+     * Only uppercase letters (A-Z) are decrypted, other characters remain unchanged.
+     * 
+     * @param cipherText the encrypted text to decrypt
+     * @param key the shift value used for decryption (0-25)
+     * @return the decrypted plaintext
+     */
     public String decrypt(String cipherText, int key) {
 
 
@@ -66,6 +118,14 @@ public class Caeser {
         return cryptText.toString();
     }
 
+    /**
+     * Analyzes the frequency of letters in the given text and prints the results.
+     * This method counts the occurrence of each letter (a-z) in the text and
+     * calculates the percentage frequency of each letter.
+     * 
+     * @param text the text to analyze (case-insensitive)
+     * @return a LinkedHashMap containing the frequency count for each letter (a-z)
+     */
     public static Map<Character, Integer> analyzeFrequency(String text) {
         final String ENGLISH_ALPHABET = "abcdefghijklmnopqrstuvwxyz";
         Map<Character, Integer> freqMap = new LinkedHashMap<>();
@@ -90,6 +150,20 @@ public class Caeser {
         }
         return freqMap;
     }
+    /**
+     * Attempts to guess the Caesar cipher key by performing frequency analysis.
+     * This method assumes that the most frequent letter in the cipher text
+     * corresponds to 'e' (the most common letter in German text).
+     * 
+     * The algorithm:
+     * 1. Counts the frequency of each letter in the cipher text
+     * 2. Finds the most frequent letter
+     * 3. Calculates the shift needed to map this letter to 'e'
+     * 4. Returns this shift as the estimated key
+     * 
+     * @param cipherText the encrypted text to analyze (case-insensitive)
+     * @return the estimated Caesar cipher key (0-25)
+     */
     public static int guessCaesarKey(String cipherText) {
         final String GERMAN_ALPHABET = "abcdefghijklmnopqrstuvwxyz";
         Map<Character, Integer> freqMap = new HashMap<>();
@@ -128,16 +202,45 @@ public class Caeser {
     }
 
 
+    /**
+     * Reads text content from a specified file.
+     * 
+     * @param filename the path to the file to read
+     * @return the content of the file as a String
+     * @throws IOException if an I/O error occurs reading from the file
+     */
     // Read text from file
     public static String readFromFile(String filename) throws IOException {
         return new String(Files.readAllBytes(Paths.get(filename)));
     }
 
+    /**
+     * Writes text content to a specified file.
+     * If the file doesn't exist, it will be created. If it exists, it will be overwritten.
+     * 
+     * @param filename the path to the file to write
+     * @param content the text content to write to the file
+     * @throws IOException if an I/O error occurs writing to the file
+     */
     // Write text to file
     public static void writeToFile(String filename, String content) throws IOException {
         Files.write(Paths.get(filename), content.getBytes());
     }
 
+    /**
+     * Main method providing command-line interface for Caesar cipher operations.
+     * 
+     * Usage modes:
+     * 1. Encrypt/Decrypt with key: java Caeser <input.txt> <key> <output.txt>
+     *    - Positive key for encryption, negative key for decryption
+     * 2. Automatic decryption: java Caeser <input.txt> <output.txt>
+     *    - Uses frequency analysis to guess the key automatically
+     * 
+     * The program handles file I/O, key validation, and error management.
+     * Keys are automatically normalized to the range 0-25.
+     * 
+     * @param args command line arguments as described above
+     */
     public static void main(String[] args) {
         try {
             if (args.length == 3) {
