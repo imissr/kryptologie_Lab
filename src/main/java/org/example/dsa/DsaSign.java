@@ -29,10 +29,11 @@ public class DsaSign {
 
     private static void sign(String privFile, String msgFile, String sigFile) throws Exception {
         BufferedReader in = new BufferedReader(new FileReader(privFile));
-        BigInteger p = new BigInteger(in.readLine());
-        BigInteger q = new BigInteger(in.readLine());
-        BigInteger g = new BigInteger(in.readLine());
-        BigInteger x = new BigInteger(in.readLine());
+
+        BigInteger p = new BigInteger(in.readLine().trim());
+        BigInteger q = new BigInteger(in.readLine().trim());
+        BigInteger g = new BigInteger(in.readLine().trim());
+        BigInteger x = new BigInteger(in.readLine().trim());
         in.close();
 
         String message = new String(Files.readAllBytes(Paths.get(msgFile)), StandardCharsets.UTF_8);

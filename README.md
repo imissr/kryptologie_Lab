@@ -303,6 +303,9 @@ mvn exec:java -Dexec.mainClass="org.example.dsa.DsaVerify" -Dexec.args="message.
 - `[message_file]` - Original message
 - `[public_key_file]` - Public key file
 - `[signature_file]` - Signature file to verify
+````aiignore
+!! dont change the argument  String pubFile = "src/main/java/org/example/dsa/" + args[0]; its already confiugred in the code
+````
 
 **Example workflow:**
 ```bash
@@ -310,11 +313,11 @@ mvn exec:java -Dexec.mainClass="org.example.dsa.DsaVerify" -Dexec.args="message.
 mvn exec:java -Dexec.mainClass="org.example.dsa.DsaKeyGen" -Dexec.args="pubFile.txt priFile.txt"
 
 # 2. Sign message
-mvn exec:java -Dexec.mainClass="org.example.dsa.DsaSign" -Dexec.args="message.txt priFile.txt signed.txt"
+mvn exec:java -Dexec.mainClass="org.example.dsa.DsaSign" -Dexec.args="priFile.txt message.txt signed.txt"
 
 # 3. Verify signature
-mvn exec:java -Dexec.mainClass="org.example.dsa.DsaVerify" -Dexec.args="message.txt pubFile.txt signed.txt"
-```
+mvn exec:java -Dexec.mainClass="org.example.dsa.DsaVerify" -Dexec.args="pubFile.txt message.txt signed.txt"
+  ```
 
 ---
 
@@ -350,6 +353,7 @@ mvn exec:java -Dexec.mainClass="org.example.diffie.DHParamGenerator"
 # 2. Perform key exchange
 mvn exec:java -Dexec.mainClass="org.example.diffie.DHExchange"
 ```
+* First run the DHParamGenerator to create the `dhparams.txt` file, then run the DHExchange to perform the key exchange.
 
 ---
 
