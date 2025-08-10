@@ -167,7 +167,7 @@ public class SHA {
     }
 
     // Utility: hex string to byte[] ignoring whitespace and odd-length auto-pad
-    /*private static byte[] hexToBytes(String hex) {
+    private static byte[] hexToBytes(String hex) {
         // Remove all whitespace
         hex = hex.replaceAll("\\s+", "");
         // If odd length, prepend '0'
@@ -186,18 +186,8 @@ public class SHA {
             data[i / 2] = (byte) ((hi << 4) + lo);
         }
         return data;
-    }*/
-
-    // Utility: hex string to byte[]
-    private static byte[] hexToBytes(String hex) {
-        int len = hex.length();
-        byte[] data = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
-                    + Character.digit(hex.charAt(i+1), 16));
-        }
-        return data;
     }
+
 
     public static void main(String[] args) throws IOException {
         if (args.length != 2) {
