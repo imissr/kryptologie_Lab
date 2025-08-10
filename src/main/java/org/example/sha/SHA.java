@@ -3,19 +3,66 @@ package org.example.sha;
 import java.io.*;
 import java.util.Arrays;
 
+/**
+ * <h1>SHA3 (Keccak-f[1600]) minimal implementation</h1>
+ *
+ * <p>A compact, educational Java implementation of the SHA-3 hash function family
+ * based on the Keccak-f[1600] permutation. The instance is parameterized by
+ * <em>capacity</em> (in bits) and the desired <em>outputBits</em> (digest length); the
+ * <em>rate</em> is derived as {@code 1600 - capacity}. The default constructor creates
+ * a SHA3-224 instance (capacity 448, output 224 bits).</p>
+ *
+ * <p>The implementation follows the sponge construction with the SHA-3 domain
+ * separation suffix {@code 0x06} and uses the canonical {@code pad10*1}
+ * padding (final bit {@code 0x80}). Absorption and squeezing are performed in
+ * little-endian order within each 64-bit lane of the 5×5 state.</p>
+ *
+ * <h2>Usage</h2>
+ * <pre>{@code
+ * // Programmatic usage
+ * SHA sha3_256 = new SHA(512, 256); // SHA3-256
+ * byte[] digest = sha3_256.hash("hello".getBytes(StandardCharsets.UTF_8));
+ * String hex = sha3_256.hexdigest("hello".getBytes(StandardCharsets.UTF_8));
+ *
+ * // CLI
+ * // Reads a file containing hex bytes (whitespace allowed) and writes digest hex
+ * java org.example.sha.SHA <inputHexFile> <outputDigestFile>
+ * }</pre>
+ *
+ * <h2>Implementation notes</h2>
+ * <ul>
+ *   <li>This code is designed for clarity and teaching, not constant-time
+ *   operation or side-channel resistance.</li>
+ *   <li>State lanes are 64-bit words; rotations use {@link Long#rotateLeft(long, int)}.</li>
+ *   <li>Absorption maps the byte stream into lanes in little-endian order.</li>
+ * </ul>
+ *
+ * @author Mohamad Khaled Minawe
+ * @since 1.0
+ */
 public class SHA {
-    // Keccak-f[1600] parameters
+    /** Width of the Keccak state in bits (fixed for Keccak-f[1600]). */
     private static final int b = 1600;
+    /** Lane size in bits (w = 2^l, here 64). */
     private static final int w = 64;           // lane size in bits
+    /** log2(w) = 6 for 64-bit lanes. */
     private static final int l = 6;            // log2(w)
+    /** Number of permutation rounds: nr = 12 + 2*l = 24. */
     private static final int nr = 12 + 2 * l;  // number of rounds = 24
 
+    /** Sponge capacity in bits (2 × outputBits for SHA-3 variants). */
     private final int capacity;   // in bits
+    /** Sponge rate in bits (b - capacity). */
     private final int rate;       // in bits
+    /** Digest length in bits to be produced during squeeze. */
     private final int outputBits; // digest length in bits
+    /** 5×5 Keccak state of 64-bit lanes (S[x][y]). */
     private long[][] S;           // 5x5 state of 64-bit lanes
 
-    // Rotation offsets (rho)
+    /**
+     * Rotation offsets (ρ step) for each state lane S[x][y].
+     * Indices follow Keccak's conventional (x, y) coordinates.
+     */
     private static final int[][] rhoOffsets = {
             { 0, 36,  3, 41, 18},
             { 1, 44, 10, 45,  2},
@@ -24,7 +71,9 @@ public class SHA {
             {27, 20, 39,  8, 14}
     };
 
-    // Round constants
+    /**
+     * Round constants (ι step) for Keccak-f[1600], applied to lane S[0][0].
+     */
     private static final long[] RC = {
             0x01L, 0x8082L, 0x800000000000808aL,
             0x8000000080008000L, 0x808bL, 0x80000001L,
@@ -36,12 +85,22 @@ public class SHA {
             0x8000000000008080L, 0x80000001L, 0x8000000080008008L,
     };
 
-    // Default: SHA3-224
+    /**
+     * Creates a SHA3-224 hasher (capacity = 448 bits, output = 224 bits).
+     */
     public SHA() {
         this(448, 224);
     }
 
-    // For other SHA3 variants: outputBits in {224, 256, 384, 512}; capacity = 2*outputBits
+    /**
+     * Creates a SHA-3 variant with a given {@code capacity} and {@code outputBits}.
+     * For the standard SHA-3 family, valid output sizes are 224, 256, 384, and 512 bits,
+     * and {@code capacity} must be twice the output size.
+     *
+     * @param capacity   capacity in bits (typically {@code 2 * outputBits})
+     * @param outputBits desired digest length in bits (e.g., 224, 256, 384, 512)
+     * @throws IllegalArgumentException if parameters are non-positive or inconsistent
+     */
     public SHA(int capacity, int outputBits) {
         this.capacity = capacity;
         this.rate = b - capacity;
@@ -49,7 +108,14 @@ public class SHA {
         this.S = new long[5][5];
     }
 
-    // SHA-3 padding: suffix 0x06, then pad10*1 (last bit 0x80)
+    /**
+     * Applies SHA-3 domain separation and Keccak padding to the message.
+     * <p>Suffix {@code 0x06} is appended first, then pad10*1 with the final bit
+     * {@code 0x80} so that the padded message is a multiple of {@code rate} bytes.</p>
+     *
+     * @param message input message bytes
+     * @return a new byte array containing the padded message
+     */
     private byte[] pad(byte[] message) {
         int rateBytes = rate / 8;
         int padLen = rateBytes - (message.length % rateBytes);
@@ -63,12 +129,17 @@ public class SHA {
         return result;
     }
 
+    /**
+     * Applies the Keccak-f[1600] permutation with {@link #nr} rounds to the state.
+     * Sequence: θ → ρ → π → χ → ι.
+     */
     private void keccakF() {
         for (int round = 0; round < nr; round++) {
             theta(); rho(); pi(); chi(); iota(round);
         }
     }
 
+    /** θ (theta) step: mixes columns to provide diffusion. */
     private void theta() {
         long[] C = new long[5];
         long[] D = new long[5];
@@ -85,6 +156,7 @@ public class SHA {
         }
     }
 
+    /** ρ (rho) step: rotates each 64-bit lane by a position-dependent offset. */
     private void rho() {
         for (int x = 0; x < 5; x++) {
             for (int y = 0; y < 5; y++) {
@@ -93,6 +165,7 @@ public class SHA {
         }
     }
 
+    /** π (pi) step: permutes lane coordinates within the 5×5 state. */
     private void pi() {
         long[][] B = new long[5][5];
         for (int x = 0; x < 5; x++) {
@@ -103,8 +176,9 @@ public class SHA {
         S = B;
     }
 
+    /** χ (chi) step: non-linear mixing within each row. */
     private void chi() {
-        for (int y = 0; y < 5; y++) {           // fix: iterate rows (fixed y)
+        for (int y = 0; y < 5; y++) {           // iterate rows (fixed y)
             long[] T = new long[5];
             for (int x = 0; x < 5; x++) T[x] = S[x][y];
             for (int x = 0; x < 5; x++) {
@@ -113,10 +187,17 @@ public class SHA {
         }
     }
 
+    /** ι (iota) step: injects the round constant into lane S[0][0]. */
     private void iota(int round) {
         S[0][0] ^= RC[round];
     }
 
+    /**
+     * Absorbs the padded message into the state in blocks of {@code rate} bits.
+     * Bytes are XORed into lanes in little-endian order before each permutation.
+     *
+     * @param padded message already padded to a multiple of the rate in bytes
+     */
     private void absorb(byte[] padded) {
         int blockSize = rate / 8;
         for (int offset = 0; offset < padded.length; offset += blockSize) {
@@ -130,6 +211,14 @@ public class SHA {
             keccakF();
         }
     }
+
+    /**
+     * Squeezes output bytes from the state until {@link #outputBits} have been produced.
+     * If more bytes are needed than fit in the current state portion, the permutation is
+     * applied again between output blocks (multi-rate sponge construction).
+     *
+     * @return the digest truncated to {@code outputBits/8} bytes
+     */
     private byte[] squeeze() {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         int lanesInRate = rate / w; // number of 64-bit lanes in the rate
@@ -151,13 +240,24 @@ public class SHA {
         return Arrays.copyOf(full, outputBits / 8);
     }
 
-
+    /**
+     * Computes the SHA-3 digest of the given message.
+     *
+     * @param message input message bytes
+     * @return digest as a byte array of length {@code outputBits/8}
+     */
     public byte[] hash(byte[] message) {
         byte[] padded = pad(message);
         absorb(padded);
         return squeeze();
     }
 
+    /**
+     * Computes the SHA-3 digest and returns it as lowercase hexadecimal.
+     *
+     * @param message input message bytes
+     * @return hex-encoded digest string (lowercase)
+     */
     public String hexdigest(byte[] message) {
         byte[] digest = hash(message);
         StringBuilder sb = new StringBuilder();
@@ -167,7 +267,16 @@ public class SHA {
         return sb.toString();
     }
 
-    // Utility: hex string to byte[] ignoring whitespace; odd-length auto-pad
+    /**
+     * Converts a hexadecimal string to a byte array.
+     * <p>Whitespace is ignored. If the number of hex digits is odd, a leading
+     * zero nibble is implicitly added. Invalid characters trigger an
+     * {@link IllegalArgumentException} with the error index.</p>
+     *
+     * @param hex hex string (whitespace allowed); may be {@code null} or empty
+     * @return byte array (empty if input is {@code null} or effectively empty)
+     * @throws IllegalArgumentException if a non-hex character is encountered
+     */
     private static byte[] hexToBytes(String hex) {
         if (hex == null) return new byte[0];
         hex = hex.replaceAll("\\s+", "");
@@ -186,6 +295,17 @@ public class SHA {
         return data;
     }
 
+    /**
+     * Command-line entry point.
+     * <p>Reads an input file containing hexadecimal bytes (whitespace permitted),
+     * converts it into the message byte array, computes the SHA3-224 digest, then
+     * writes the lowercase hex digest to an output file and also prints it to stdout.</p>
+     *
+     * <p><strong>Usage:</strong> {@code java org.example.sha.SHA <inputHexFile> <outputDigestFile>}</p>
+     *
+     * @param args two arguments: input hex file and output digest file
+     * @throws IOException if reading or writing files fails
+     */
     public static void main(String[] args) throws IOException {
         if (args.length != 2) {
             System.err.println("Usage: java org.example.sha.SHA <inputHexFile> <outputDigestFile>");

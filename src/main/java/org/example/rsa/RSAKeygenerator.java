@@ -8,10 +8,43 @@ import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.List;
 
+/**
+ * Simple RSA key generator.
+ *
+ * <p>Generates two primes {@code p} and {@code q} using the Miller–Rabin test,
+ * uses a 30-wheel ({@link #OFFSETS}) to find candidates efficiently, and then computes:
+ * {@code n = p*q}, {@code φ = (p-1)(q-1)}, a random public exponent {@code e}
+ * with {@code gcd(e, φ) = 1}, and the private exponent {@code d = e^{-1} mod φ}.</p>
+ *
+ * <p>Outputs:
+ * <ul>
+ *   <li>Private key: {@code (d, n)}</li>
+ *   <li>Public key: {@code (e, n)}</li>
+ *   <li>Primes: {@code p} and {@code q}</li>
+ * </ul>
+ * </p>
+ *
+ * <h2>Usage</h2>
+ * <pre>{@code
+ * java org.example.rsa.RSAKeygenerator <bitLength> <privOut> <pubOut> <primesOut>
+ * }</pre>
+ *
+ * <p><b>Note:</b> For learning/demo purposes only. No side-channel hardening or secure key storage.</p>
+ *
+ * @since 1.0
+ */
 public class RSAKeygenerator {
     private static final SecureRandom random = new SecureRandom();
+
+    /** Offsets for the 30-wheel (skips multiples of 2, 3, and 5). */
     private static final int[] OFFSETS = {1, 7, 11, 13, 17, 19, 23, 29};
 
+    /**
+     * CLI entry point.
+     *
+     * @param args Four arguments: {@code bitLength} {@code privOut} {@code pubOut} {@code primesOut}
+     *             (see the usage example in the class Javadoc)
+     */
     public static void main(String[] args) {
         if (args.length != 4) {
             System.err.println("Usage: java rsa.RSAKeygenerator <bitLength> <privOut> <pubOut> <primesOut>");
@@ -32,12 +65,15 @@ public class RSAKeygenerator {
     }
 
     /**
-     * Generiert RSA-Schlüssel:
-     * - zwei Primzahlen p,q
-     * - n=p*q, phi=(p-1)(q-1)
-     * - öffentlichen Exponenten e (ggT(e,phi)=1)
-     * - privaten Exponenten d = e^(-1) mod phi
-     * und schreibt private, public Keys sowie die Primzahlen.
+     * Generates an RSA key pair with a random {@code e} and writes:
+     * the private key ({@code d, n}), the public key ({@code e, n}),
+     * and the primes {@code p, q} to the given files.
+     *
+     * @param bitLength bit length for primes {@code p} and {@code q}
+     * @param privOut   output path for the private key ({@code d, n})
+     * @param pubOut    output path for the public key ({@code e, n})
+     * @param primesOut output path for the primes {@code p, q}
+     * @throws IOException if any file cannot be written
      */
     public static void generate(int bitLength,
                                 Path privOut,
@@ -54,10 +90,10 @@ public class RSAKeygenerator {
 
         BigInteger e;
         do {
-            // Zufall im Intervall [2, phi-1]
+            // Random in [2, phi-1]
             e = new BigInteger(phi.bitLength(), random)
-                    .mod(phi.subtract(BigInteger.TWO))  // jetzt [0, phi-3]
-                    .add(BigInteger.TWO);               // jetzt [2, phi-1]
+                    .mod(phi.subtract(BigInteger.TWO))  // now [0, phi-3]
+                    .add(BigInteger.TWO);               // now [2, phi-1]
         } while (!phi.gcd(e).equals(BigInteger.ONE));
 
         BigInteger d = modInverse(e, phi);
@@ -66,12 +102,20 @@ public class RSAKeygenerator {
         writeKey(pubOut,   e, n);
         writePrimes(primesOut, p, q);
         if (verifyKeyPair(e, d, p, q)) {
-            System.out.println("Key-Paar ist gültig.");
+            System.out.println("Key pair is valid.");
         } else {
-            System.out.println("Warnung: e*d mod φ(n) ≠ 1 !");
+            System.out.println("Warning: e*d mod φ(n) ≠ 1 !");
         }
     }
 
+    /**
+     * Generates a (probable) prime of the requested bit length.
+     * <p>Strategy: produce candidates via the 30-wheel and test them with
+     * {@link #isProbablePrime(BigInteger, int)} (40 rounds).</p>
+     *
+     * @param bitLength desired bit length of the prime
+     * @return a {@link BigInteger} that is very likely prime
+     */
     private static BigInteger generatePrime(int bitLength) {
         int zBits = bitLength - 5;
         while (true) {
@@ -85,6 +129,13 @@ public class RSAKeygenerator {
         }
     }
 
+    /**
+     * Miller–Rabin primality test.
+     *
+     * @param n      number to test (n &gt;= 2)
+     * @param rounds number of random bases (witnesses); more rounds → lower error probability
+     * @return {@code true} if {@code n} is probably prime; otherwise {@code false}
+     */
     private static boolean isProbablePrime(BigInteger n, int rounds) {
         if (n.compareTo(BigInteger.TWO) < 0) return false;
         if (n.equals(BigInteger.TWO)) return true;
@@ -114,14 +165,30 @@ public class RSAKeygenerator {
         return true;
     }
 
+    /**
+     * Computes the modular inverse of {@code a} modulo {@code m}
+     * using the extended Euclidean algorithm.
+     *
+     * @param a value whose inverse is sought
+     * @param m modulus (m &gt; 1)
+     * @return {@code x} such that {@code a*x ≡ 1 (mod m)}
+     * @throws ArithmeticException if {@code gcd(a, m) ≠ 1} (no inverse exists)
+     */
     private static BigInteger modInverse(BigInteger a, BigInteger m) {
         BigInteger[] vals = extendedGCD(a, m);
         BigInteger g = vals[0], x = vals[1];
         if (!g.equals(BigInteger.ONE))
-            throw new ArithmeticException("Kein Inverses, gcd ≠ 1");
+            throw new ArithmeticException("No inverse; gcd ≠ 1");
         return x.mod(m);
     }
 
+    /**
+     * Extended Euclidean algorithm.
+     *
+     * @param a first value
+     * @param b second value
+     * @return array {@code [g, x, y]} with {@code g = gcd(a, b)} and {@code a*x + b*y = g}
+     */
     private static BigInteger[] extendedGCD(BigInteger a, BigInteger b) {
         BigInteger x0 = BigInteger.ONE,  y0 = BigInteger.ZERO;
         BigInteger x1 = BigInteger.ZERO, y1 = BigInteger.ONE;
@@ -137,12 +204,30 @@ public class RSAKeygenerator {
         return new BigInteger[]{a, x0, y0};
     }
 
+    /**
+     * Writes a key (exponent and modulus) line by line to a file.
+     * Creates missing parent directories if needed.
+     *
+     * @param path output path
+     * @param exp  exponent ({@code d} for private or {@code e} for public)
+     * @param n    modulus
+     * @throws IOException on I/O errors
+     */
     private static void writeKey(Path path, BigInteger exp, BigInteger n) throws IOException {
         if (path.getParent() != null) Files.createDirectories(path.getParent());
         List<String> lines = List.of(exp.toString(), n.toString());
         Files.write(path, lines);
     }
 
+    /**
+     * Writes the primes {@code p} and {@code q} line by line to a file.
+     * Creates missing parent directories if needed.
+     *
+     * @param path output path
+     * @param p    first prime
+     * @param q    second prime
+     * @throws IOException on I/O errors
+     */
     private static void writePrimes(Path path, BigInteger p, BigInteger q) throws IOException {
         if (path.getParent() != null) Files.createDirectories(path.getParent());
         List<String> lines = List.of(p.toString(), q.toString());
@@ -150,13 +235,13 @@ public class RSAKeygenerator {
     }
 
     /**
-     * Überprüft, ob e * d ≡ 1 mod φ(n), mit φ(n) = (p-1)*(q-1).
+     * Verifies {@code e * d ≡ 1 mod φ(n)} where {@code φ(n) = (p-1)*(q-1)}.
      *
-     * @param e öffentlicher Exponent
-     * @param d privater Exponent
-     * @param p erste Primzahl
-     * @param q zweite Primzahl
-     * @return true, falls e*d % ((p-1)*(q-1)) == 1
+     * @param e public exponent
+     * @param d private exponent
+     * @param p first prime
+     * @param q second prime
+     * @return {@code true} if {@code e*d % ((p-1)*(q-1)) == 1}, otherwise {@code false}
      */
     public static boolean verifyKeyPair(BigInteger e,
                                         BigInteger d,
@@ -167,7 +252,7 @@ public class RSAKeygenerator {
                 .multiply(q.subtract(BigInteger.ONE));
         // e*d mod φ(n)
         BigInteger edModPhi = e.multiply(d).mod(phi);
-        // true, wenn edModPhi == 1
+        // true iff edModPhi == 1
         return edModPhi.equals(BigInteger.ONE);
     }
 }
