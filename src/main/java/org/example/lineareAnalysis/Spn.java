@@ -19,6 +19,38 @@ public class Spn {
     };
     private static final int[] PERM = {0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15};
 
+    private static final int[] INVERSE_PERM = new int[16];
+    static {
+        for (int i = 0; i < 16; i++) {
+            INVERSE_PERM[PERM[i]] = i;
+        }
+    }
+    private static final String[] INVERSE_SBOX = new String[16];
+    static {
+        for (int i = 0; i < 16; i++) {
+            int val = Integer.parseInt(SBOX[i], 2);
+            INVERSE_SBOX[val] = String.format("%4s", Integer.toBinaryString(i)).replace(' ', '0');
+        }
+    }
+
+
+    public static String inverseSbox(String blk) {
+        StringBuilder o = new StringBuilder();
+        for (int i = 0; i < 16; i += 4) {
+            int idx = Integer.parseInt(blk.substring(i, i + 4), 2);
+            o.append(INVERSE_SBOX[idx]);
+        }
+        return o.toString();
+    }
+
+    public static String inversePermute(String blk) {
+        StringBuilder o = new StringBuilder("                ");
+        for (int i = 0; i < 16; i++) {
+            o.setCharAt(i, blk.charAt(INVERSE_PERM[i]));
+        }
+        return o.toString();
+    }
+
     public static String hexToBinary(String hex) {
         hex = hex.replaceAll("[^0-9A-Fa-f]", "");
         StringBuilder b = new StringBuilder();
@@ -72,9 +104,10 @@ public class Spn {
         return o.toString();
     }
 
-    public static String encrypt(String inputHex, String keyHex) {
-        String bin = hexToBinary(inputHex);
-        String kbin = hexToBinary(keyHex);
+    public static String encrypt(String hex, String khex) {
+        String bin = hexToBinary(hex);
+        String kbin = hexToBinary(khex);
+
         List<String> bs = toBlocks(bin);
         StringBuilder cb = new StringBuilder();
         for (String blk : bs) {
@@ -92,24 +125,60 @@ public class Spn {
         return binaryToHex(cb.toString());
     }
 
+    public static String decrypt(String inputHex, String keyHex) {
+        String bin = hexToBinary(inputHex);
+        String kbin = hexToBinary(keyHex);
+        List<String> bs = toBlocks(bin);
+        StringBuilder pb = new StringBuilder();
+
+        for (String blk : bs) {
+            String state = blk;
+
+            // Reverse the final operations
+            state = xor(state, kbin);           // Undo final key XOR
+            state = inverseSbox(state);         // Undo final S-box
+            state = xor(state, kbin);           // Undo pre-final key XOR
+
+            // Reverse the 3 rounds
+            for (int r = 0; r < 3; r++) {
+                state = inversePermute(state);  // Undo permutation
+                state = inverseSbox(state);     // Undo S-box
+                state = xor(state, kbin);       // Undo key XOR
+            }
+
+            pb.append(state);
+        }
+        return binaryToHex(pb.toString());
+    }
+
 
     public static void main(String[] args) {
-        if (args.length != 3) {
-            System.err.println("Usage: java org.example.lineareAnalysis.Spn <inputFile> <keyFile> <outputFile>");
+        if (args.length < 3 || args.length > 4) {
+            System.err.println("Usage: java org.example.lineareAnalysis.Spn <inputFile> <keyFile> <outputFile> [decrypt]");
             System.exit(1);
         }
+
+        boolean isDecrypt = args.length == 4 && "decrypt".equalsIgnoreCase(args[3]);
+
         try {
-            String hexInput = Files.readString(Paths.get(args[0]));
-            String hexKey   = Files.readString(Paths.get(args[1]));
-            String inputBin = hexToBinary(hexInput);
-            String keyBin   = hexToBinary(hexKey);
-            if (keyBin.length() != 16) {
-                throw new IllegalArgumentException("Schlüssel muss genau 16 Bit haben.");
+            String hexInput = Files.readString(Paths.get(args[0])).trim();
+            String hexKey   = Files.readString(Paths.get(args[1])).trim();
+
+            // Check if key is exactly 4 hex characters (16 bits)
+            if (hexKey.length() != 4) {
+                throw new IllegalArgumentException("Schlüssel muss genau 4 Hex-Zeichen haben (16 Bit).");
             }
-            String outBin = encrypt(inputBin, keyBin);
-            String hexOut = binaryToHex(outBin);
-            Files.writeString(Paths.get(args[2]), hexOut);
-            System.out.println("Verschlüsselung erfolgreich. Ausgabe: " + args[2]);
+
+            String outHex;
+            if (isDecrypt) {
+                outHex = decrypt(hexInput, hexKey);
+                System.out.println("Entschlüsselung erfolgreich. Ausgabe: " + args[2]);
+            } else {
+                outHex = encrypt(hexInput, hexKey);
+                System.out.println("Verschlüsselung erfolgreich. Ausgabe: " + args[2]);
+            }
+
+            Files.writeString(Paths.get(args[2]), outHex);
         } catch (IOException | IllegalArgumentException e) {
             System.err.println("Fehler: " + e.getMessage());
             System.exit(1);

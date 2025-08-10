@@ -12,7 +12,7 @@ public class DHExchange {
         BigInteger p = null, g = null;
 
         // Automatically read parameters p and g from dhparams.txt
-        try (BufferedReader reader = new BufferedReader(new FileReader("diffie/dhparams.txt"))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader("src/main/java/org/example/diffie/dhparams.txt"))) {
             String pLine = reader.readLine();
             String gLine = reader.readLine();
             if (pLine == null || gLine == null) {
@@ -49,7 +49,7 @@ public class DHExchange {
         System.out.println("Valid exchange? " + valid);
 
         // Write results to a text file
-        try (FileWriter writer = new FileWriter("diffie/dhexchange.txt")) {
+        try (FileWriter writer = new FileWriter("src/main/java/org/example/diffie/dhexchange.txt")) {
             writer.write("A=" + A.toString());
             writer.write(System.lineSeparator());
             writer.write("B=" + B.toString());

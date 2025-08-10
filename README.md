@@ -130,10 +130,11 @@ mvn exec:java -Dexec.mainClass="org.example.ClassName" -Dexec.args="arg1 arg2"
 **Usage with Maven:**
 ```bash
 # Encrypt/Decrypt with key
-mvn exec:java -Dexec.mainClass="org.example.addativeChiffere.Caeser" -Dexec.args="input.txt 7 output.txt"
+mvn exec:java -Dexec.mainClass="org.example.addativeChiffere.Caeser" -Dexec.args="src/main/java/org/example/addativeChiffere/Klartext_1.txt 7 src/main/java/org/example/addativeChiffere/output.txt"
+
 
 # Brute force attack (find key)
-mvn exec:java -Dexec.mainClass="org.example.addativeChiffere.Caeser" -Dexec.args="ciphertext.txt output.txt"
+mvn exec:java -Dexec.mainClass="org.example.addativeChiffere.Caeser" -Dexec.args="src/main/java/org/example/addativeChiffere/output.txt src/main/java/org/example/addativeChiffere/decrypted_output.txt"
 ```
 
 
@@ -152,10 +153,10 @@ mvn exec:java -Dexec.mainClass="org.example.addativeChiffere.Caeser" -Dexec.args
 **Usage:**
 ```bash
 # Encrypt
-mvn exec:java -Dexec.mainClass="org.example.addativeChiffere.Vigenere" -Dexec.args="encrypt input.txt SCHLUESSEL output.txt"
+mvn exec:java -Dexec.mainClass="org.example.addativeChiffere.Vigenere" -Dexec.args="encrypt src/main/java/org/example/addativeChiffere/Klartext_Vig.txt TAG src/main/java/org/example/addativeChiffere/vigenere_encrypted_tag.txt"
 
-# Decrypt (automatic key finding)
-mvn exec:java -Dexec.mainClass="org.example.addativeChiffere.Vigenere" -Dexec.args="decrypt ciphertext.txt output.txt"
+# Decrypt (automatic key finding) using analysis
+mvn exec:java -Dexec.mainClass="org.example.addativeChiffere.Vigenere" -Dexec.args="decrypt src/main/java/org/example/addativeChiffere/Kryptotext_TAG.txt src/main/java/org/example/addativeChiffere/vigenere_decrypted.txt"
 ```
 
 **Commands:**
@@ -177,10 +178,10 @@ mvn exec:java -Dexec.mainClass="org.example.addativeChiffere.Vigenere" -Dexec.ar
 **Usage:**
 ```bash
 # Encrypt
-mvn exec:java -Dexec.mainClass="org.example.aes.AesCipher" -Dexec.args="encrypt input.txt SBox.txt key.txt output.txt"
+mvn exec:java -Dexec.mainClass="org.example.aes.AesCipher" -Dexec.args="encrypt src/main/java/org/example/aes/Beispiel_1_Klartext.txt src/main/java/org/example/aes/SBox.txt src/main/java/org/example/aes/Beispiel_key.txt src/main/java/org/example/aes/output.txt"
 
 # Decrypt
-mvn exec:java -Dexec.mainClass="org.example.aes.AesCipher" -Dexec.args="decrypt ciphertext.txt SBox.txt key.txt output.txt"
+mvn exec:java -Dexec.mainClass="org.example.aes.AesCipher" -Dexec.args="decrypt src/main/java/org/example/aes/output.txt src/main/java/org/example/aes/SBox.txt src/main/java/org/example/aes/Beispiel_key.txt src/main/java/org/example/aes/decrypted_output.txt"
 ```
 
 **Arguments:**
@@ -199,22 +200,7 @@ mvn exec:java -Dexec.mainClass="org.example.aes.AesCipher" -Dexec.args="decrypt 
 
 **Usage:**
 ```bash
-mvn exec:java -Dexec.mainClass="org.example.aes.BlockCipherModes" -Dexec.args="-m
-OFB
--o
-encrypt
--i
-src/main/java/org/example/aes/Beispiel_1_Klartext.txt
--k
-src/main/java/org/example/aes/Beispiel_key.txt
--out
-src/main/java/org/example/aes/output.txt
--s
-src/main/java/org/example/aes/Sbox.txt
--b
-16
--iv
-src/main/java/org/example/aes/IV"
+mvn exec:java -Dexec.mainClass="org.example.aes.BlockCipherModes" -Dexec.args="-m OFB -o encrypt -i src/main/java/org/example/aes/Beispiel_1_Klartext.txt -k src/main/java/org/example/aes/Beispiel_key.txt -out src/main/java/org/example/aes/output.txt -s src/main/java/org/example/aes/SBox.txt -b 16 -iv src/main/java/org/example/aes/IV"
 ```
 
 **Required Arguments:**
@@ -340,7 +326,7 @@ mvn exec:java -Dexec.mainClass="org.example.dsa.DsaVerify" -Dexec.args="message.
 
 **Usage:**
 ```bash
-mvn exec:java -Dexec.mainClass="org.example.diffie.DHParamGenerator"
+mvn exec:java -Dexec.mainClass="org.example.diffie.DHParamGenerator" -Dexec.args="50"
 ```
 
 **Output:** Creates `dhparams.txt` with p and g values
@@ -375,7 +361,7 @@ mvn exec:java -Dexec.mainClass="org.example.diffie.DHExchange"
 
 **Usage:**
 ```bash
-mvn exec:java -Dexec.mainClass="org.example.sha.SHA" -Dexec.args="input.txt output.txt"
+mvn exec:java -Dexec.mainClass="org.example.sha.SHA" -Dexec.args="src/main/java/org/example/sha/Input.txt src/main/java/org/example/sha/Output.txt"
 ```
 
 **Arguments:**
@@ -396,20 +382,18 @@ mvn exec:java -Dexec.mainClass="org.example.sha.SHA" -Dexec.args="input.txt outp
 
 **Usage:**
 ```bash
-# Generate plaintext-ciphertext pairs
-mvn exec:java -Dexec.mainClass="org.example.lineareAnalysis.LinApprox" -Dexec.args="generate plaintext.txt ciphertext.txt 1000 deadbeef"
+mvn exec:java -Dexec.mainClass="org.example.lineareAnalysis.LinApprox" -Dexec.args="generate src/main/java/org/example/lineareAnalysis/genreatedPlainText.txt src/main/java/org/example/lineareAnalysis/ciphergenerated.txt 1000 2b7e"
+# Analyze the generated plaintext-ciphertext pairs
+mvn exec:java -Dexec.mainClass="org.example.lineareAnalysis.LinApprox" -Dexec.args="src/main/java/org/example/lineareAnalysis/genreatedPlainText.txt src/main/java/org/example/lineareAnalysis/ciphergenerated.txt"
 
-# Analyze existing pairs
-mvn exec:java -Dexec.mainClass="org.example.lineareAnalysis.LinApprox" -Dexec.args="plaintext.txt ciphertext.txt"
+mvn exec:java -Dexec.mainClass="org.example.lineareAnalysis.LinApprox" -Dexec.args="src/main/java/org/example/lineareAnalysis/genreatedPlainText.txt src/main/java/org/example/lineareAnalysis/ciphergenerated.txt src/main/java/org/example/lineareAnalysis/predictedOutput.txt"
 
-# Analyze with key guessing
-mvn exec:java -Dexec.mainClass="org.example.lineareAnalysis.LinApprox" -Dexec.args="plaintext.txt ciphertext.txt key.txt"
 ```
 
 **Commands:**
 - `generate [plain_file] [cipher_file] [num_pairs] [key_hex]` - Generate pairs
 - `[plain_file] [cipher_file]` - Analyze pairs
-- `[plain_file] [cipher_file] [key_file]` - Analyze with key
+- `[plain_file] [cipher_file] [outputfile]` - Analyze with specfic output file name or path
 
 #### Quality Approximation (`org.example.lineareAnalysis.GueteApporximation`)
 
@@ -417,7 +401,7 @@ mvn exec:java -Dexec.mainClass="org.example.lineareAnalysis.LinApprox" -Dexec.ar
 
 **Usage:**
 ```bash
-mvn exec:java -Dexec.mainClass="org.example.lineareAnalysis.GueteApporximation"
+mvn exec:java -Dexec.mainClass="org.example.lineareAnalysis.GueteApporximation" -Dexec.args="src/main/java/org/example/lineareAnalysis/Sbox-Example src/main/java/org/example/lineareAnalysis/approximationExampleGueteAppr src/main/java/org/example/lineareAnalysis/quality_output.txt"
 ```
 
 #### SPN Cipher (`org.example.lineareAnalysis.Spn`)
@@ -426,8 +410,15 @@ mvn exec:java -Dexec.mainClass="org.example.lineareAnalysis.GueteApporximation"
 
 **Usage:**
 ```bash
-mvn exec:java -Dexec.mainClass="org.example.lineareAnalysis.Spn"
+# Encrypt using SPN
+mvn exec:java -Dexec.mainClass="org.example.lineareAnalysis.Spn" -Dexec.args="src/main/java/org/example/lineareAnalysis/Beispiel_1_Klartext.txt src/main/java/org/example/lineareAnalysis/Beispiel_key.txt src/main/java/org/example/lineareAnalysis/spn_encrypted.txt encrypt"
+mvn exec:java -Dexec.mainClass="org.example.lineareAnalysis.Spn" -Dexec.args="src/main/java/org/example/lineareAnalysis/spn_encrypted.txt src/main/java/org/example/lineareAnalysis/Beispiel_key.txt src/main/java/org/example/lineareAnalysis/spn_decrypted.txt decrypt"
+
 ```
+**Commands:**
+- `[Klartext_file] [key_file] [outputfile] encrypt` - encrypt
+- `[Klartext_file] [key_file] [outputfile] dcrypt` - decrypt
+
 
 ---
 
@@ -452,8 +443,7 @@ mvn clean compile
 
 # 2. Encrypt using AES
 mvn exec:java -Dexec.mainClass="org.example.aes.AesCipher" -Dexec.args="encrypt src/main/java/org/example/aes/Beispiel_1_Klartext.txt src/main/java/org/example/aes/SBox.txt src/main/java/org/example/aes/Beispiel_key.txt encrypted_output.txt"
-
-# 3. Decrypt the result
+# 3. Decrypt the ciphertext
 mvn exec:java -Dexec.mainClass="org.example.aes.AesCipher" -Dexec.args="decrypt encrypted_output.txt src/main/java/org/example/aes/SBox.txt src/main/java/org/example/aes/Beispiel_key.txt decrypted_output.txt"
 ```
 

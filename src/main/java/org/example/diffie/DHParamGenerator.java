@@ -1,5 +1,6 @@
 package org.example.diffie;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -23,11 +24,22 @@ public class DHParamGenerator {
         BigInteger g = DiffieHellman.pickGenerator(p);
 
         // Write parameters to a text file
-        try (FileWriter writer = new FileWriter("diffie/dhparams.txt")) {
-            writer.write(p.toString());
-            writer.write(System.lineSeparator());
-            writer.write(g.toString());
-            System.out.println("DH parameters successfully written to dhparams.txt");
+
+        try {
+            // Create the directory if it doesn't exist
+            File diffieDir = new File("src/main/java/org/example/diffie");
+            if (!diffieDir.exists()) {
+                diffieDir.mkdirs();
+                System.out.println("Created directory: " + diffieDir.getPath());
+            }
+
+            // Write to the file inside the diffie directory
+            try (FileWriter writer = new FileWriter("src/main/java/org/example/diffie/dhparams.txt")) {
+                writer.write(p.toString());
+                writer.write(System.lineSeparator());
+                writer.write(g.toString());
+                System.out.println("DH parameters successfully written to src/main/java/org/example/diffie/dhparams.txt");
+            }
         } catch (IOException e) {
             System.err.println("Failed to write DH parameters: " + e.getMessage());
             e.printStackTrace();
