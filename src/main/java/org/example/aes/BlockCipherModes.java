@@ -12,14 +12,25 @@ import java.util.Arrays;
  *
  * Usage:
  *   - Supply any BlockCipher implementation (e.g., AES) to these methods.
- *   - For ECB/CBC the CLI "-b" flag is treated as a chunk size (must be >= cipher block size, e.g., 16).
- *     Internally AES still operates on fixed 16-byte blocks; plaintext is split into chunkSize segments,
- *     and each chunk is processed in 16-byte blocks with only the final partial block (if any) zero-padded.
+ *
+ * Semantics of -b:
+ *   - ECB/CBC: "-b" is a message CHUNK SIZE (>= AES block size, i.e., 16). The message is split into chunks of size b;
+ *              inside each chunk AES still runs on 16-byte blocks; only the very last partial AES block (of the entire message)
+ *              is zero-padded.
+ *   - OFB/CTR: "-b" is a SEGMENT SIZE for XOR (any positive value). Keystream is generated in 16-byte blocks (AES block size)
+ *              but XOR is applied in segments of size b. No padding is used in stream modes.
  */
 public class BlockCipherModes {
 
+    // =========================
+    // Padding helpers (ECB/CBC)
+    // =========================
+
     /**
-     * Pads data with zero bytes up to a multiple of blockSize.
+     * Pads data with zero bytes to make it a multiple of blockSize.
+     * @param data the data to pad
+     * @param blockSize the target block size
+     * @return padded data
      */
     public static byte[] padZeros(byte[] data, int blockSize) {
         int padLen = (blockSize - (data.length % blockSize)) % blockSize;
@@ -33,7 +44,9 @@ public class BlockCipherModes {
     }
 
     /**
-     * Removes zero-byte padding. All trailing zero bytes are stripped.
+     * Removes trailing zero-byte padding from data.
+     * @param data the padded data
+     * @return data with padding removed
      */
     public static byte[] unpadZeros(byte[] data) {
         int i = data.length - 1;
@@ -43,13 +56,19 @@ public class BlockCipherModes {
         return Arrays.copyOf(data, i + 1);
     }
 
+    // =========
+    //   ECB
+    // =========
+
     /**
-     * Electronic Code Book (ECB) mode with chunked segmentation.
-     * Splits plaintext into chunkSize segments; within each chunk, treats data in cipher block size (e.g., 16)
-     * and pads only the final block of the entire message if it's partial.
+     * Encrypts data using ECB mode with chunked processing.
+     * @param cipher the block cipher to use
+     * @param plaintext the data to encrypt
+     * @param chunkSize the chunk size for processing (>= 16)
+     * @return encrypted data
      */
     public static byte[] encryptECB(BlockCipher cipher, byte[] plaintext, int chunkSize) {
-        int blockSize = 16;// AES fixed block size (typically 16)
+        int blockSize = 16; // AES fixed block size
         if (blockSize <= 0) {
             throw new IllegalArgumentException("Invalid cipher block size: " + blockSize);
         }
@@ -90,7 +109,11 @@ public class BlockCipherModes {
     }
 
     /**
-     * ECB decryption. The chunkSize parameter is ignored because ciphertext is already aligned to internal blocks.
+     * Decrypts data using ECB mode.
+     * @param cipher the block cipher to use
+     * @param ciphertext the encrypted data
+     * @param ignoredChunkSize chunk size parameter (ignored)
+     * @return decrypted data with padding removed
      */
     public static byte[] decryptECB(BlockCipher cipher, byte[] ciphertext, int ignoredChunkSize) {
         int blockSize = 16;
@@ -109,8 +132,17 @@ public class BlockCipherModes {
         return unpadZeros(pt);
     }
 
+    // =========
+    //   CBC
+    // =========
+
     /**
-     * Cipher Block Chaining (CBC) mode with chunked segmentation like ECB.
+     * Encrypts data using CBC mode with chunked processing.
+     * @param cipher the block cipher to use
+     * @param plaintext the data to encrypt
+     * @param chunkSize the chunk size for processing (>= 16)
+     * @param iv the initialization vector (16 bytes)
+     * @return encrypted data
      */
     public static byte[] encryptCBC(BlockCipher cipher, byte[] plaintext, int chunkSize, byte[] iv) {
         int blockSize = 16;
@@ -157,6 +189,14 @@ public class BlockCipherModes {
         return ctStream.toByteArray();
     }
 
+    /**
+     * Decrypts data using CBC mode.
+     * @param cipher the block cipher to use
+     * @param ciphertext the encrypted data
+     * @param ignoredChunkSize chunk size parameter (ignored)
+     * @param iv the initialization vector (16 bytes)
+     * @return decrypted data with padding removed
+     */
     public static byte[] decryptCBC(BlockCipher cipher, byte[] ciphertext, int ignoredChunkSize, byte[] iv) {
         int blockSize = 16;
         if (blockSize <= 0) {
@@ -182,63 +222,114 @@ public class BlockCipherModes {
         return unpadZeros(pt);
     }
 
-    /**
-     * Output Feedback (OFB) mode.
-     * Encryption and decryption are identical operations.
-     */
-    public static byte[] ofbKeystream(BlockCipher cipher, int length, int blockSize, byte[] iv) {
-        if (iv.length != blockSize) {
-            throw new IllegalArgumentException("IV length must equal block size");
-        }
-        byte[] keystream = new byte[length];
-        byte[] state = Arrays.copyOf(iv, blockSize);
-        int pos = 0;
-        while (pos < length) {
-            state = cipher.encryptBlock(state);
-            int chunk = Math.min(blockSize, length - pos);
-            System.arraycopy(state, 0, keystream, pos, chunk);
-            pos += chunk;
-        }
-        return keystream;
-    }
-
-    public static byte[] encryptOFB(BlockCipher cipher, byte[] plaintext, int blockSize, byte[] iv) {
-        byte[] keystream = ofbKeystream(cipher, plaintext.length, blockSize, iv);
-        return xor(plaintext, keystream);
-    }
-
-    public static byte[] decryptOFB(BlockCipher cipher, byte[] ciphertext, int blockSize, byte[] iv) {
-        // OFB decryption is identical to encryption
-        return encryptOFB(cipher, ciphertext, blockSize, iv);
-    }
+    // =========
+    //   OFB   (segment-size aware; no padding)
+    // =========
 
     /**
-     * Counter (CTR) mode.
-     * Encryption and decryption are identical operations.
+     * Encrypts data using OFB mode with segment-sized XOR.
+     * @param cipher the block cipher to use
+     * @param plaintext the data to encrypt
+     * @param segmentSize the XOR segment size (> 0)
+     * @param iv the initialization vector (must be 16 bytes for AES)
+     * @return encrypted data
      */
-    public static byte[] encryptCTR(BlockCipher cipher, byte[] plaintext, int blockSize, long initialCounter) {
-        int length = plaintext.length;
-        byte[] keystream = new byte[length];
-        long counter = initialCounter;
+    public static byte[] encryptOFB(BlockCipher cipher, byte[] plaintext, int segmentSize, byte[] iv) {
+        final int BS = 16;
+        if (iv.length != BS) throw new IllegalArgumentException("IV length must be 16 bytes for AES/OFB");
+        if (segmentSize <= 0) throw new IllegalArgumentException("Segment size must be > 0");
+
+        byte[] out = new byte[plaintext.length];
+
+        // OFB state: next keystream block = E_K(state); state = that keystream block
+        byte[] state = Arrays.copyOf(iv, BS);
+        byte[] ks = new byte[BS];
+        int ksPos = BS; // force initial generation
         int pos = 0;
 
-        while (pos < length) {
-            byte[] counterBlock = longToBytes(counter++, blockSize);
-            byte[] ksBlock = cipher.encryptBlock(counterBlock);
-            int chunk = Math.min(blockSize, length - pos);
-            System.arraycopy(ksBlock, 0, keystream, pos, chunk);
-            pos += chunk;
+        while (pos < plaintext.length) {
+            if (ksPos == BS) {
+                state = cipher.encryptBlock(state);      // 16 in -> 16 out
+                System.arraycopy(state, 0, ks, 0, BS);   // fill keystream buffer
+                ksPos = 0;
+            }
+            int n = Math.min(segmentSize, Math.min(plaintext.length - pos, BS - ksPos));
+            for (int i = 0; i < n; i++) {
+                out[pos + i] = (byte) (plaintext[pos + i] ^ ks[ksPos + i]);
+            }
+            ksPos += n;
+            pos += n;
         }
-        return xor(plaintext, keystream);
-    }
-
-    public static byte[] decryptCTR(BlockCipher cipher, byte[] ciphertext, int blockSize, long initialCounter) {
-        // CTR decryption is identical to encryption
-        return encryptCTR(cipher, ciphertext, blockSize, initialCounter);
+        return out;
     }
 
     /**
-     * Helper: XOR two byte arrays of the same length.
+     * Decrypts data using OFB mode (identical to encryption).
+     */
+    public static byte[] decryptOFB(BlockCipher cipher, byte[] ciphertext, int segmentSize, byte[] iv) {
+        return encryptOFB(cipher, ciphertext, segmentSize, iv);
+    }
+
+    // =========
+    //   CTR   (segment-size aware; no padding)
+    // =========
+
+    /**
+     * Encrypts data using CTR mode with segment-sized XOR.
+     * IV must be 16 bytes; interpreted as (nonce || counter) where we increment the last 8 bytes (big-endian).
+     * @param cipher the block cipher to use
+     * @param data plaintext/ciphertext
+     * @param segmentSize XOR segment size (> 0)
+     * @param iv 16-byte IV (nonce||counter)
+     * @return transformed data
+     */
+    public static byte[] encryptCTR(BlockCipher cipher, byte[] data, int segmentSize, byte[] iv) {
+        final int BS = 16;
+        if (iv.length != BS) throw new IllegalArgumentException("IV length must be 16 bytes for AES/CTR");
+        if (segmentSize <= 0) throw new IllegalArgumentException("Segment size must be > 0");
+
+        byte[] out = new byte[data.length];
+
+        // counterBlock starts as IV; we increment the last 8 bytes as a big-endian counter
+        byte[] counterBlock = Arrays.copyOf(iv, BS);
+
+        byte[] ks = new byte[BS];
+        int ksPos = BS; // force initial generation
+        int pos = 0;
+
+        while (pos < data.length) {
+            if (ksPos == BS) {
+                byte[] ksBlock = cipher.encryptBlock(counterBlock);
+                System.arraycopy(ksBlock, 0, ks, 0, BS);
+                ksPos = 0;
+                incrementCounterBE(counterBlock, 8, 16); // increment 64-bit counter in bytes 8..15
+            }
+            int n = Math.min(segmentSize, Math.min(data.length - pos, BS - ksPos));
+            for (int i = 0; i < n; i++) {
+                out[pos + i] = (byte) (data[pos + i] ^ ks[ksPos + i]);
+            }
+            ksPos += n;
+            pos += n;
+        }
+        return out;
+    }
+
+    /**
+     * Decrypts data using CTR mode (identical to encryption).
+     */
+    public static byte[] decryptCTR(BlockCipher cipher, byte[] ciphertext, int segmentSize, byte[] iv) {
+        return encryptCTR(cipher, ciphertext, segmentSize, iv);
+    }
+
+    // =========
+    // Utilities
+    // =========
+
+    /**
+     * XORs two byte arrays of the same length.
+     * @param a first array
+     * @param b second array
+     * @return XOR result
      */
     static byte[] xor(byte[] a, byte[] b) {
         int len = a.length;
@@ -250,19 +341,21 @@ public class BlockCipherModes {
     }
 
     /**
-     * Converts a counter value to a big-endian byte array of given length.
+     * Increments a big-endian counter in buf[off..end-1] by 1 (with carry).
      */
-    private static byte[] longToBytes(long counter, int length) {
-        byte[] out = new byte[length];
-        for (int i = length - 1; i >= 0; i--) {
-            out[i] = (byte) (counter & 0xFF);
-            counter >>>= 8;
+    private static void incrementCounterBE(byte[] buf, int off, int end) {
+        for (int i = end - 1; i >= off; i--) {
+            int v = (buf[i] & 0xFF) + 1;
+            buf[i] = (byte) v;
+            if (v <= 0xFF) break; // no carry -> done
         }
-        return out;
     }
 
     /**
-     * Reads a hex file and returns the bytes
+     * Reads hex data from file and returns as byte array.
+     * @param filePath path to hex file
+     * @return byte array of hex data
+     * @throws IOException if file reading fails
      */
     private static byte[] readHexFile(String filePath) throws IOException {
         String content = Files.readString(Paths.get(filePath), StandardCharsets.UTF_8).trim();
@@ -276,7 +369,9 @@ public class BlockCipherModes {
     }
 
     /**
-     * Converts a byte array to hex string representation
+     * Converts byte array to hex string with spaces.
+     * @param bytes the byte array to convert
+     * @return hex string representation
      */
     private static String bytesToHex(byte[] bytes) {
         StringBuilder result = new StringBuilder();
@@ -289,16 +384,9 @@ public class BlockCipherModes {
         return result.toString();
     }
 
-    /**
-     * Converts a byte array to long (big-endian)
-     */
-    private static long bytesToLong(byte[] bytes) {
-        long result = 0;
-        for (int i = 0; i < Math.min(8, bytes.length); i++) {
-            result = (result << 8) | (bytes[i] & 0xFF);
-        }
-        return result;
-    }
+    // =================
+    //  CLI - argument parsing
+    // =================
 
     /**
      * Simple argument parser for command line flags
@@ -306,10 +394,20 @@ public class BlockCipherModes {
     private static class ArgumentParser {
         private final String[] args;
 
+        /**
+         * Constructor for argument parser.
+         * @param args command line arguments
+         */
         public ArgumentParser(String[] args) {
             this.args = args;
         }
 
+        /**
+         * Gets required command line argument by flag.
+         * @param flag the flag to search for
+         * @return the argument value
+         * @throws IllegalArgumentException if flag not found
+         */
         public String getRequiredArgument(String flag) {
             for (int i = 0; i < args.length - 1; i++) {
                 if (args[i].equals(flag)) {
@@ -319,6 +417,12 @@ public class BlockCipherModes {
             throw new IllegalArgumentException("Required argument not found: " + flag);
         }
 
+        /**
+         * Gets optional command line argument with default value.
+         * @param flag the flag to search for
+         * @param defaultValue value to return if flag not found
+         * @return the argument value or default
+         */
         public String getOptionalArgument(String flag, String defaultValue) {
             for (int i = 0; i < args.length - 1; i++) {
                 if (args[i].equals(flag)) {
@@ -329,15 +433,13 @@ public class BlockCipherModes {
         }
     }
 
+    // =================
+    //  CLI - main
+    // =================
+
     /**
-     * Command-line interface for AES encryption/decryption with different modes.
-     *
-     * Usage: java BlockCipherModes -m [mode] -o [operation] -i [inputFile] -k [keyFile] -out [outputFile] [-iv [ivFile]] [-s [sboxFile]] [-b [chunkSize]]
-     *
-     * Modes: ECB, CBC, OFB, CTR
-     * Operations: encrypt, decrypt
-     *
-     * Note: For ECB/CBC, -b is a chunk size (must be >= cipher block size, e.g., 16). AES still uses its internal fixed block size.
+     * Main method providing command-line interface for AES modes.
+     * @param args command line arguments
      */
     public static void main(String[] args) {
         if (args.length < 8) {
@@ -370,7 +472,7 @@ public class BlockCipherModes {
             }
 
             if (chunkOrBlockSize <= 0 || chunkOrBlockSize > 1024) {
-                System.err.println("Error: Chunk/block size must be a positive reasonable value");
+                System.err.println("Error: Chunk/segment size must be a positive reasonable value");
                 System.exit(1);
             }
 
@@ -389,7 +491,7 @@ public class BlockCipherModes {
             System.out.println("Operation: " + operation);
             System.out.println("Input: " + inputFile);
             System.out.println("Output: " + outputFile);
-            System.out.println("Chunk/Block size parameter: " + chunkOrBlockSize + " bytes");
+            System.out.println("Chunk/Segment size (-b): " + chunkOrBlockSize + " bytes");
 
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
@@ -398,11 +500,23 @@ public class BlockCipherModes {
         }
     }
 
+    /**
+     * Performs the actual AES operation based on mode and parameters.
+     * @param mode the cipher mode (ECB, CBC, OFB, CTR)
+     * @param operation encrypt or decrypt
+     * @param inputFile path to input file
+     * @param keyFile path to key file
+     * @param outputFile path to output file
+     * @param ivFile path to IV file
+     * @param sboxFile path to S-Box file
+     * @param chunkOrBlockSize chunk size (ECB/CBC) or segment size (OFB/CTR)
+     * @throws IOException if file operations fail
+     */
     private static void performAesOperation(String mode, String operation, String inputFile,
                                             String keyFile, String outputFile, String ivFile, String sboxFile, int chunkOrBlockSize)
             throws IOException {
 
-        // Read input data - ALWAYS as hex for consistency with Main.java
+        // Read input data - ALWAYS as hex for consistency
         byte[] inputData = readHexFile(inputFile);
 
         // Create AES cipher
@@ -420,7 +534,7 @@ public class BlockCipherModes {
                 }
                 break;
 
-            case "CBC":
+            case "CBC": {
                 byte[] iv = readHexFile(ivFile);
                 if (operation.equals("encrypt")) {
                     result = encryptCBC(cipher, inputData, chunkOrBlockSize, iv);
@@ -428,26 +542,27 @@ public class BlockCipherModes {
                     result = decryptCBC(cipher, inputData, chunkOrBlockSize, iv);
                 }
                 break;
+            }
 
-            case "OFB":
-                byte[] ivOFB = readHexFile(ivFile);
+            case "OFB": {
+                byte[] ivOFB = readHexFile(ivFile); // must be 16 bytes
                 if (operation.equals("encrypt")) {
                     result = encryptOFB(cipher, inputData, chunkOrBlockSize, ivOFB);
                 } else {
                     result = decryptOFB(cipher, inputData, chunkOrBlockSize, ivOFB);
                 }
                 break;
+            }
 
-            case "CTR":
-                // For CTR mode, use IV as counter (convert first 8 bytes to long)
-                byte[] ivCTR = readHexFile(ivFile);
-                long counter = bytesToLong(Arrays.copyOf(ivCTR, 8));
+            case "CTR": {
+                byte[] ivCTR = readHexFile(ivFile); // 16 bytes: nonce||counter
                 if (operation.equals("encrypt")) {
-                    result = encryptCTR(cipher, inputData, chunkOrBlockSize, counter);
+                    result = encryptCTR(cipher, inputData, chunkOrBlockSize, ivCTR);
                 } else {
-                    result = decryptCTR(cipher, inputData, chunkOrBlockSize, counter);
+                    result = decryptCTR(cipher, inputData, chunkOrBlockSize, ivCTR);
                 }
                 break;
+            }
 
             default:
                 throw new IllegalArgumentException("Unsupported mode: " + mode);
@@ -457,6 +572,13 @@ public class BlockCipherModes {
         writeOutput(result, outputFile, operation);
     }
 
+    /**
+     * Writes output data to file based on operation type.
+     * @param data the data to write
+     * @param outputFile path to output file
+     * @param operation encrypt (hex output) or decrypt (text output)
+     * @throws IOException if file writing fails
+     */
     private static void writeOutput(byte[] data, String outputFile, String operation) throws IOException {
         if (operation.equals("encrypt")) {
             // Write encrypted data as hex
@@ -469,11 +591,14 @@ public class BlockCipherModes {
         }
     }
 
+    /**
+     * Prints usage information for the command line interface.
+     */
     private static void printUsage() {
         System.out.println("AES Encryption/Decryption Tool - Block Cipher Modes");
         System.out.println("====================================================");
         System.out.println();
-        System.out.println("Usage: java BlockCipherModes -m [mode] -o [operation] -i [inputFile] -k [keyFile] -out [outputFile] [-iv [ivFile]] [-s [sboxFile]] [-b [chunkSize]]");
+        System.out.println("Usage: java BlockCipherModes -m [mode] -o [operation] -i [inputFile] -k [keyFile] -out [outputFile] [-iv [ivFile]] [-s [sboxFile]] [-b [size]]");
         System.out.println();
         System.out.println("Required Parameters:");
         System.out.println("  -m   [mode]       : ECB, CBC, OFB, CTR");
@@ -483,16 +608,16 @@ public class BlockCipherModes {
         System.out.println("  -out [outputFile] : Path to output file");
         System.out.println();
         System.out.println("Optional Parameters:");
-        System.out.println("  -iv  [ivFile]     : Path to IV file (hex format, required for CBC, OFB, CTR)");
+        System.out.println("  -iv  [ivFile]     : Path to IV file (hex format; required for CBC, OFB, CTR; 16 bytes for AES)");
         System.out.println("  -s   [sboxFile]   : Path to S-box file (defaults to SBox.txt)");
-        System.out.println("  -b   [chunkSize]  : Chunk size in bytes for ECB/CBC segmentation (must be >= internal block size, default 16). AES still uses its fixed block size internally.");
+        System.out.println("  -b   [size]       : ECB/CBC: chunk size (>=16). OFB/CTR: XOR segment size (>0).");
         System.out.println();
         System.out.println("Examples:");
         System.out.println("  Encrypt with CBC using chunking:");
-        System.out.println("    java BlockCipherModes -m CBC -o encrypt -i plaintext.txt -k key.txt -out encrypted.txt -iv iv.txt -b 31");
+        System.out.println("    java BlockCipherModes -m CBC -o encrypt -i plaintext.hex -k key.hex -out encrypted.hex -iv iv.hex -b 31");
         System.out.println();
-        System.out.println("  Decrypt with ECB:");
-        System.out.println("    java BlockCipherModes -m ECB -o decrypt -i cipher.txt -k key.txt -out decrypted.txt -s sbox.txt -b 31");
+        System.out.println("  Encrypt with OFB using 7-byte segments (stream mode):");
+        System.out.println("    java BlockCipherModes -m OFB -o encrypt -i plaintext.hex -k key.hex -out encrypted.hex -iv iv.hex -b 7");
         System.out.println();
         System.out.println("Note: For encryption, input file should contain hex values of plaintext.");
         System.out.println("      For decryption, input file should contain hex values of ciphertext.");

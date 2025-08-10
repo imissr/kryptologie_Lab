@@ -4,16 +4,30 @@ import org.example.aes.Aes;
 
 import java.io.IOException;
 
+/**
+ * AES cipher implementation that implements the BlockCipher interface.
+ * Provides wrapper methods for AES encryption/decryption with file-based configuration.
+ */
 public class AesCipher implements BlockCipher {
 
     private final String sBoxPath;
     private final String roundKeyPath;
 
+    /**
+     * Constructs an AES cipher with file paths for S-Box and round keys.
+     * @param sBoxPath path to S-Box file
+     * @param roundKeyPath path to round key file
+     */
     public AesCipher(String sBoxPath, String roundKeyPath) {
         this.sBoxPath = sBoxPath;
         this.roundKeyPath = roundKeyPath;
     }
 
+    /**
+     * Encrypts a single block using AES algorithm.
+     * @param plaintext the 16-byte block to encrypt
+     * @return the encrypted 16-byte block
+     */
     @Override
     public byte[] encryptBlock(byte[] plaintext) {
         try {
@@ -23,6 +37,11 @@ public class AesCipher implements BlockCipher {
         }
     }
 
+    /**
+     * Decrypts a single block using AES algorithm.
+     * @param ciphertext the 16-byte block to decrypt
+     * @return the decrypted 16-byte block
+     */
     @Override
     public byte[] decryptBlock(byte[] ciphertext) {
         try {
@@ -35,7 +54,9 @@ public class AesCipher implements BlockCipher {
     // --- Command Line Interface Functions ---
 
     /**
-     * Converts a byte array to hex string representation
+     * Converts a byte array to hex string representation.
+     * @param bytes the byte array to convert
+     * @return hex string with spaces between bytes
      */
     private static String bytesToHex(byte[] bytes) {
         StringBuilder result = new StringBuilder();
@@ -46,14 +67,20 @@ public class AesCipher implements BlockCipher {
     }
 
     /**
-     * Reads a hex file and returns the bytes
+     * Reads a hex file and returns the bytes.
+     * @param filename path to the hex file
+     * @return byte array from hex data
+     * @throws IOException if file reading fails
      */
     private static byte[] readHexFile(String filename) throws IOException {
         return Aes.readHexFile(filename);
     }
 
     /**
-     * Writes bytes to a hex file
+     * Writes bytes to a hex file.
+     * @param filename path to output file
+     * @param data byte array to write as hex
+     * @throws IOException if file writing fails
      */
     private static void writeHexFile(String filename, byte[] data) throws IOException {
         String hexString = bytesToHex(data);
@@ -61,8 +88,8 @@ public class AesCipher implements BlockCipher {
     }
 
     /**
-     * Command line program for AES block encryption
-     * Usage: java AesCipher encrypt [Inputfile] [SBoxfile] [Keyfile] [Outputfile]
+     * Command line interface for AES block encryption.
+     * @param args [encrypt, inputFile, sboxFile, keyFile, outputFile]
      */
     public static void encryptFromCommandLine(String[] args) {
         if (args.length != 5 || !args[0].equals("encrypt")) {
@@ -113,8 +140,8 @@ public class AesCipher implements BlockCipher {
     }
 
     /**
-     * Command line program for AES block decryption
-     * Usage: java AesCipher decrypt [Inputfile] [SBoxfile] [Keyfile] [Outputfile]
+     * Command line interface for AES block decryption.
+     * @param args [decrypt, inputFile, sboxFile, keyFile, outputFile]
      */
     public static void decryptFromCommandLine(String[] args) {
         if (args.length != 5 || !args[0].equals("decrypt")) {
@@ -165,7 +192,8 @@ public class AesCipher implements BlockCipher {
     }
 
     /**
-     * Main method to handle command line arguments for AES block operations
+     * Main method handling command line arguments for AES operations.
+     * @param args command line arguments
      */
     public static void main(String[] args) {
         if (args.length == 0) {

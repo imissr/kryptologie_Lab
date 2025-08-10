@@ -6,6 +6,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
+/**
+ * AES (Advanced Encryption Standard) implementation with support for 128-bit keys.
+ * Provides core AES operations including key expansion, S-Box transformations,
+ * and block encryption/decryption.
+ */
 public class Aes {
 
     private static final byte[][] matrixEncrypt = new byte[][]{
@@ -27,6 +32,10 @@ public class Aes {
     private static final byte[][] roundKeys = new byte[11][16];
 
 
+    /**
+     * Generates round keys for AES-128 encryption using key expansion algorithm.
+     * @param key the 128-bit master key (16 bytes)
+     */
     public static void generateRoundKeys(byte[] key) {
         if (key.length != 16) {
             throw new IllegalArgumentException("Key must be 16 bytes for AES-128");
@@ -65,6 +74,11 @@ public class Aes {
         }
     }
 
+    /**
+     * Applies S-Box substitution to each byte of a 32-bit word.
+     * @param word the 32-bit word to transform
+     * @return the transformed word with S-Box substitutions
+     */
     private static int subWord(int word) {
         return ((sBox[(word >>> 28) & 0xF][(word >>> 24) & 0xF] & 0xFF) << 24) |
                 ((sBox[(word >>> 20) & 0xF][(word >>> 16) & 0xF] & 0xFF) << 16) |
@@ -72,10 +86,20 @@ public class Aes {
                 (sBox[(word >>> 4) & 0xF][word & 0xF] & 0xFF);
     }
 
+    /**
+     * Rotates a 32-bit word left by 8 bits (1 byte).
+     * @param word the word to rotate
+     * @return the rotated word
+     */
     private static int rotWord(int word) {
         return ((word << 8) | ((word >>> 24) & 0xFF)) & 0xFFFFFFFF;
     }
 
+    /**
+     * Returns the round constant for the given round in key expansion.
+     * @param round the round number (1-10)
+     * @return the round constant value
+     */
     private static int rcon(int round) {
         int[] rconTable = {
                 0x01000000, 0x02000000, 0x04000000, 0x08000000,
@@ -85,17 +109,32 @@ public class Aes {
         return rconTable[round - 1];
     }
 
+    /**
+     * Initializes the S-Box lookup table from a file and computes the inverse S-Box.
+     * @param fileName path to the S-Box file
+     * @throws IOException if file reading fails
+     */
     public static void initSBoxes(String fileName) throws IOException {
         // 1) Read forward S-box from hex file into sBox
         readSBox(fileName, sBox);
         computeInverseSBox(sBox, sBoxInv);
 
     }
+    /**
+     * Initializes the inverse S-Box directly from a file.
+     * @param fileName path to the inverse S-Box file
+     * @throws IOException if file reading fails
+     */
     public static void initInverseSBoxes( String fileName) throws IOException {
         // 2) Compute inverse S-box from sBox
         readSBox(fileName, sBoxInv);
     }
 
+    /**
+     * Initializes round keys from a key file and generates all round keys.
+     * @param fileName path to the key file
+     * @throws IOException if file reading fails
+     */
     public static void initRoundKeys(String fileName) throws IOException {
         byte[] key = readHexFile(fileName);
 
@@ -142,6 +181,12 @@ public class Aes {
         }
     }*/
 
+    /**
+     * Reads S-Box data from a hex file into a 16x16 byte array.
+     * @param fileName path to the S-Box file
+     * @param input the 16x16 array to populate
+     * @throws IOException if file reading fails
+     */
     public static void readSBox(String fileName, byte[][] input) throws IOException {
         List<String> lines = Files.readAllLines(Paths.get(fileName));
         for (int i = 0; i < 16; i++) {
@@ -156,6 +201,11 @@ public class Aes {
         }
     }
 
+    /**
+     * Computes the inverse S-Box from the forward S-Box.
+     * @param sBox the forward S-Box lookup table
+     * @param sBoxInv the inverse S-Box to populate
+     */
     public static void computeInverseSBox(byte[][] sBox, byte[][] sBoxInv) {
         for (int row = 0; row < 16; row++) {
             for (int col = 0; col < 16; col++) {
@@ -167,6 +217,11 @@ public class Aes {
         }
     }
 
+    /**
+     * Adds (XORs) the round key to the state matrix.
+     * @param state the 4x4 state matrix
+     * @param roundKey the 4x4 round key matrix
+     */
     public static void addRoundKey(byte[][] state, byte[][] roundKey) {
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
@@ -175,6 +230,10 @@ public class Aes {
         }
     }
 
+    /**
+     * Applies S-Box substitution to each byte in the state matrix.
+     * @param state the 4x4 state matrix to transform
+     */
     public static void subBytes(byte[][] state) {
         if (state.length != 4 || state[0].length != 4) {
             throw new IllegalArgumentException("state must be 4×4");
@@ -188,6 +247,10 @@ public class Aes {
         }
     }
 
+    /**
+     * Applies inverse S-Box substitution to each byte in the state matrix.
+     * @param state the 4x4 state matrix to transform
+     */
     public static void invSubBytes(byte[][] state) {
         if (state.length != 4 || state[0].length != 4) {
             throw new IllegalArgumentException("state must be 4×4");
@@ -201,6 +264,10 @@ public class Aes {
         }
     }
 
+    /**
+     * Applies inverse MixColumns transformation using the inverse matrix.
+     * @param state the 4x4 state matrix to transform
+     */
     public static void invMixColumns(byte[][] state) {
         if (state.length != 4 || state[0].length != 4) {
             throw new IllegalArgumentException("state must be 4×4");
@@ -227,6 +294,10 @@ public class Aes {
     }
 
 
+    /**
+     * Shifts rows in the state matrix: row i is shifted left by i positions.
+     * @param state the 4x4 state matrix to transform
+     */
     public static void shiftRows(byte[][] state) {
         if (state.length != 4 || state[0].length != 4) {
             throw new IllegalArgumentException("state must be 4×4");
@@ -240,6 +311,10 @@ public class Aes {
         System.arraycopy(temp, 0, state, 0, state.length);
     }
 
+    /**
+     * Inverse of shiftRows: row i is shifted right by i positions.
+     * @param state the 4x4 state matrix to transform
+     */
     public static void invShiftRows(byte[][] state) {
         if (state.length != 4 || state[0].length != 4) {
             throw new IllegalArgumentException("state must be 4×4");
@@ -263,6 +338,10 @@ public class Aes {
     }
 
 
+    /**
+     * Applies MixColumns transformation using matrix multiplication in GF(2^8).
+     * @param state the 4x4 state matrix to transform
+     */
     public static void mixColumns(byte[][] state) {
         if (state.length != 4 || state[0].length != 4) {
             throw new IllegalArgumentException("state must be 4×4");
@@ -288,6 +367,12 @@ public class Aes {
         }
     }
 
+    /**
+     * Performs multiplication in the Galois Field GF(2^8) using AES polynomial.
+     * @param a first operand
+     * @param b second operand
+     * @return the product in GF(2^8)
+     */
     private static byte galoisMultiply(byte a, byte b) {
         int aa = a & 0xFF;
         int bb = b & 0xFF;
@@ -311,6 +396,12 @@ public class Aes {
         return (byte) product;
     }
 
+    /**
+     * Reads hexadecimal data from a file and returns as byte array.
+     * @param path file path to read from
+     * @return byte array of hex data
+     * @throws IOException if file reading fails
+     */
     public static byte[] readHexFile(String path) throws IOException {
         // Read entire file content as a UTF-8 string
         String content = Files.readString(Paths.get(path), StandardCharsets.UTF_8)
@@ -331,6 +422,11 @@ public class Aes {
         return bytes;
     }
 
+    /**
+     * Converts the flat round key array to a 4x4 matrix for the given round.
+     * @param round the round number (0-10)
+     * @return 4x4 matrix representation of the round key
+     */
     private static byte[][] getRoundKeyMatrix(int round) {
         byte[][] k = new byte[4][4];
         byte[] flat = roundKeys[round];
@@ -342,6 +438,14 @@ public class Aes {
         return k;
     }
 
+    /**
+     * Encrypts a single 128-bit block using AES encryption algorithm.
+     * @param in the 16-byte input block
+     * @param locSbox path to S-Box file
+     * @param locKeyRounds path to key file
+     * @return the encrypted 16-byte block
+     * @throws IOException if file operations fail
+     */
     public static byte[] encryptBlock(byte[] in , String locSbox , String locKeyRounds) throws IOException {
 
 
@@ -384,6 +488,14 @@ public class Aes {
     }
 
 
+    /**
+     * Decrypts a single 128-bit block using AES decryption algorithm.
+     * @param in the 16-byte encrypted block
+     * @param locSbox path to S-Box file
+     * @param locKeyRounds path to key file
+     * @return the decrypted 16-byte block
+     * @throws IOException if file operations fail
+     */
     public static byte[] decryptBlock(byte[] in, String locSbox, String locKeyRounds) throws IOException {
         initSBoxes(locSbox);
         initRoundKeys(locKeyRounds);
