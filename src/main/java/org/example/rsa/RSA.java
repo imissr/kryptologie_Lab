@@ -52,14 +52,21 @@ public class RSA {
     }
 
     public static void main(String[] args) {
-        if (args.length != 3) {
-            System.err.println("Usage: java RSA <input_file> <key_file> <output_destination>");
+        if (args.length < 3 || args.length > 4) {
+            System.err.println("Usage: java RSA <operation> <input_file> <key_file> <output_destination>");
+            System.err.println("  operation: encrypt or decrypt");
             System.exit(1);
         }
 
-        String inputPath         = args[0];
-        String keyPath           = args[1];
-        String outputDestination = args[2];
+        String operation         = args[0].toLowerCase();
+        String inputPath         = args[1];
+        String keyPath           = args[2];
+        String outputDestination = args[3];
+
+        if (!operation.equals("encrypt") && !operation.equals("decrypt")) {
+            System.err.println("Invalid operation. Use 'encrypt' or 'decrypt'");
+            System.exit(1);
+        }
 
         try {
             // Einlesen des Werts
@@ -84,8 +91,15 @@ public class RSA {
                 Files.createDirectories(outFile.getParent());
             }
 
-            // Berechnung
-            BigInteger result = modPow(value, exponent, modulus);
+            // Berechnung based on operation
+            BigInteger result;
+            if (operation.equals("encrypt")) {
+                result = encrypt(value, exponent, modulus);
+                System.out.println("Encryption completed.");
+            } else {
+                result = decrypt(value, exponent, modulus);
+                System.out.println("Decryption completed.");
+            }
 
             // Datei anlegen, falls nicht vorhanden, und beschreibbar machen
             if (!Files.exists(outFile)) {
@@ -97,7 +111,7 @@ public class RSA {
                 writer.write(result.toString());
             }
 
-            System.out.println("Operation completed. Result written to " + outFile);
+            System.out.println("Result written to " + outFile);
         } catch (IOException e) {
             System.err.println("I/O error: " + e.getMessage());
             System.exit(1);

@@ -234,10 +234,17 @@ mvn exec:java -Dexec.mainClass="org.example.aes.BlockCipherModes" -Dexec.args="-
 
 **Usage:**
 ```bash
-mvn exec:java -Dexec.mainClass="org.example.rsa.RSAKeygenerator"
+mvn exec:java -Dexec.mainClass="org.example.rsa.RSAKeygenerator" -Dexec.args="50 src/main/java/org/example/rsa/private.key src/main/java/org/example/rsa/public.key src/main/java/org/example/rsa/primes.key"
 ```
 
 **Output:** Generates `public.key` and `private.key` files
+
+**Arguments:**
+- `[input_file]` - File Path for input 
+- `[output_file]` - File Path for output
+- `[primes]` - file Path for primes
+- `[size]` -  size in bits (e.g., 50)
+
 
 #### RSA Encryption/Decryption (`org.example.rsa.RSA`)
 
@@ -245,7 +252,9 @@ mvn exec:java -Dexec.mainClass="org.example.rsa.RSAKeygenerator"
 
 **Usage:**
 ```bash
-mvn exec:java -Dexec.mainClass="org.example.rsa.RSA" -Dexec.args="input.txt key.txt output.txt"
+mvn exec:java -Dexec.mainClass="org.example.rsa.RSA" -Dexec.args="encrypt src/main/java/org/example/rsa/ExampleText.txt src/main/java/org/example/rsa/public.key src/main/java/org/example/rsa/output.txt"
+mvn exec:java -Dexec.mainClass="org.example.rsa.RSA" -Dexec.args="encrypt src/main/java/org/example/rsa/output.txt src/main/java/org/example/rsa/private.key src/main/java/org/example/rsa/decryptOutput.txt"
+
 ```
 
 **Arguments:**
@@ -264,6 +273,10 @@ mvn exec:java -Dexec.mainClass="org.example.rsa.RSA" -Dexec.args="input.txt key.
 ### 5. Digital Signature Algorithm (`dsa` package)
 
 #### DSA Key Generation (`org.example.dsa.DsaKeyGen`)
+
+````aiignore
+!! dont change the argument  String pubFile = "src/main/java/org/example/dsa/" + args[0]; its already confiugred in the code
+````
 
 **Purpose**: Generate DSA key pairs
 
@@ -303,9 +316,7 @@ mvn exec:java -Dexec.mainClass="org.example.dsa.DsaVerify" -Dexec.args="message.
 - `[message_file]` - Original message
 - `[public_key_file]` - Public key file
 - `[signature_file]` - Signature file to verify
-````aiignore
-!! dont change the argument  String pubFile = "src/main/java/org/example/dsa/" + args[0]; its already confiugred in the code
-````
+
 
 **Example workflow:**
 ```bash
