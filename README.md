@@ -62,23 +62,8 @@ src/main/java/org/example/
 └── sha/                          # SHA hash function
 ```
 
-## Quick Start (Without Maven)
 
-If you want to test immediately without installing Maven:
 
-1. **Open the project in your IDE** (IntelliJ IDEA, Eclipse, VS Code with Java extension)
-2. **Make sure Java 21+ is configured**
-3. **Run any main class directly from your IDE:**
-   - Navigate to any class with a `main` method
-   - Right-click → "Run ClassName.main()"
-   - Add arguments in the run configuration if needed
-
-**Example: Test Caesar Cipher**
-1. Open `src/main/java/org/example/addativeChiffere/Caeser.java`
-2. Right-click → "Run Caeser.main()"
-3. In run configuration, add arguments: `src/main/java/org/example/addativeChiffere/Klartext_1.txt 7 output.txt`
-
----
 
 ## Running Individual Components
 
